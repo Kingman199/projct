@@ -1,7 +1,7 @@
-import ConnectionWithDatabase
-from Server import start
+from Database.DatabaseParent import DatabaseParent
+from Network import Network
 from installer import main
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-    start()
+    Network( DatabaseParent() )
