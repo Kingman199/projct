@@ -1,0 +1,89 @@
+/* "Add Task" Input */
+    .task-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      outline: none;
+      position: relative;
+      background: transparent;
+    }
+
+    /* Task Name Cell: Reserve space for comment icon and fix height */
+    .task-name-cell {
+        position: relative;
+        background: transparent;
+        //padding-right: 40px; /* reserve space for the comment icon */
+        min-height: 24px;
+        line-height: 24px;
+    }
+
+    .task-name-cell:hover {
+    background: none; /* Prevent the entire cell from changing on hover */
+    }
+
+    /* The text container is positioned absolutely so its appearance won’t change the cell’s dimensions */
+    .task-name-content {
+      background: transparent;
+      position: relative;
+      width: 80%;
+      height: 100%;
+      top: -10px;
+    }
+    /* Display Text and Input Styling */
+    .display-text,
+    .edit-input {
+        position: absolute;
+        top: -8px;
+        left: 10px;
+        width: 80%;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .edit-input {
+        display: none;
+        border: 1px solid #002;
+        border-radius: 3px;
+        background: transparent;
+    }
+    /* The comment icon is fixed on the right */
+    .comment-icon {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 18px;
+      color: #6BCB77;
+      z-index: 2;
+    }
+
+ /* Ensure the input box appears when hovering over the text only */
+  .task-name-content {
+    display: inline-block;
+    position: relative;
+    top: -10px;
+  }
+  .task-name-content:hover .edit-input {
+    display: block;
+  }
+  .task-name-content:hover .display-text {
+    display: inline;
+  }
+
+.task-table tr .task-name-cell:hover {
+    background: none;
+}
+
+
+/* Remove hover to show input */
+.task-name-cell .task-name-content:hover .edit-input {
+    display: none; /* Ensure it doesn’t appear on hover */
+}
+
+/* Show input only when clicked */
+.task-name-cell .task-name-content .edit-input {
+    display: none;
+}
