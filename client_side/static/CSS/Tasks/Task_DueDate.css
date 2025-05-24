@@ -1,0 +1,29 @@
+.due-date-cell {
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    text-align: center;       /* Horizontal center */
+    vertical-align: middle;   /* Vertical center within the table row */
+}
+
+.due-date-cell:hover {
+    background-color: #f3f4f6;
+}
+
+.due-date-cell input[type="text"] {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    text-align: center;
+    direction: rtl;
+    text-align: right;
+}
