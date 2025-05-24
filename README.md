@@ -29,8 +29,10 @@ Here is how:
   18. after that - press Enter
   19. You should see 4 links: DOUBLE CLICK ON THE WITH THE  --- computer_ip:5000
   * Running on http://127.0.0.1:5001
- * Running on http://computer_ip:5001
-WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+  * Running on http://computer_ip:5001
+
+  WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+
  * Running on all addresses (0.0.0.0)
  * *Running on http://127.0.0.1:5000*
  * *Running on http://computer_ip:5000*
