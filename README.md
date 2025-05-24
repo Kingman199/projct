@@ -3,6 +3,7 @@ Welcome to the project (Sunday.com)! Let’s get you up and running smoothly.
 
 ## Project Structure
 ├── Server_Side # All the backend & database stuff lives here
+
 └── Client_Side # All the frontend / website files are here
 
 ---
