@@ -17,44 +17,17 @@ Here is how:
   7. type: py Main.py
   8. after that - press Enter
   9. You should see something that looks like this at the end:
-
-     *CLIENTS table created successfully*
-
-     *FRIENDS table created successfully*
-
-     *FRIEND_REQUESTS table created successfully*
-
-     *Role table created successfully*
-
-     *WORKERS table created successfully*
-
-     *WORKER_REQUESTS table created successfully*
-
-     *Projects table created successfully*
-
-     *SharedProject table created successfully*
-
-     *LIST_TO_DO table created successfully*
-
-     *Tasks table created successfully.*
-
-     *Comments table created successfully.*
-
-     *Sprints table created successfully.*
-
-     *SprintTasks table created successfully.*
-
      *Server started on ('0.0.0.0', 8085)*
-  11. After that, go to your client_side folder: C:\Users\user\your_folder_location\client_side
-  12. go to: client_side/ConnectionWithDatabase.py and open it with NotePad++
-  13. Get the IP of the computer that runs the server_side, copy it into the ADDR where the string is:  ADDR = ("IP", 8085)
-  14. After that, go to your client_side folder: C:\Users\user\your_folder_location\client_side
-  15. *MAKE SURE YOU DO IT WHERE THE Main.py IS LOCACTED*
-  16. type: cmd ,then and press Enter
-  17. After the black window pops up:
-  18. type py Main.py
-  19. after that - press Enter
-  20. You should see 4 links: DOUBLE CLICK ON THE WITH THE  --- computer_ip:5000
+  10. After that, go to your client_side folder: C:\Users\user\your_folder_location\client_side
+  11. go to: client_side/ConnectionWithDatabase.py and open it with NotePad++
+  12. Get the IP of the computer that runs the server_side, copy it into the ADDR where the string is:  ADDR = ("IP", 8085)
+  13. After that, go to your client_side folder: C:\Users\user\your_folder_location\client_side
+  14. *MAKE SURE YOU DO IT WHERE THE Main.py IS LOCACTED*
+  15. type: cmd ,then and press Enter
+  16. After the black window pops up:
+  17. type py Main.py
+  18. after that - press Enter
+  19. You should see 4 links: DOUBLE CLICK ON THE WITH THE  --- computer_ip:5000
   * Running on http://127.0.0.1:5001
  * Running on http://computer_ip:5001
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
