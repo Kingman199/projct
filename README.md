@@ -18,33 +18,33 @@ Here is how:
   8. after that - press Enter
   9. You should see something that looks like this at the end:
 
-     *CLIENTS table created successfully
+     *CLIENTS table created successfully*
 
-     FRIENDS table created successfully
+     *FRIENDS table created successfully*
 
-     FRIEND_REQUESTS table created successfully
+     *FRIEND_REQUESTS table created successfully*
 
-     Role table created successfully
+     *Role table created successfully*
 
-     WORKERS table created successfully
+     *WORKERS table created successfully*
 
-     WORKER_REQUESTS table created successfully
+     *WORKER_REQUESTS table created successfully*
 
-     Projects table created successfully
+     *Projects table created successfully*
 
-     SharedProject table created successfully
+     *SharedProject table created successfully*
 
-     LIST_TO_DO table created successfully
+     *LIST_TO_DO table created successfully*
 
-     Tasks table created successfully.
+     *Tasks table created successfully.*
 
-     Comments table created successfully.
+     *Comments table created successfully.*
 
-     Sprints table created successfully.
+     *Sprints table created successfully.*
 
-     SprintTasks table created successfully.
+     *SprintTasks table created successfully.*
 
-     Server started on ('0.0.0.0', 8085)*
+     *Server started on ('0.0.0.0', 8085)*
   11. After that, go to your client_side folder: C:\Users\user\your_folder_location\client_side
   12. go to: client_side/ConnectionWithDatabase.py and open it with NotePad++
   13. Get the IP of the computer that runs the server_side, copy it into the ADDR where the string is:  ADDR = ("IP", 8085)
