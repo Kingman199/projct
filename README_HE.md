@@ -60,7 +60,9 @@ py Main.py
 ```IPv4 Address. . . . . . . . . . . : your_computer_ip```
 
 (ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - 
-(```ping your_other_computer_ip```
+
+```ping your_other_computer_ip```
+(
 אתם אמורים לראות משהו כזה:
 
 Pinging *your_other_computer_ip* with 32 bytes of data:
