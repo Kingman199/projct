@@ -17,6 +17,29 @@ Client_Side ───┘ # כל קבצי הצד לקוח / אתר נמצאים �
 (הרשתות של בתי הספר לפעמים קצת בעייתיות...)
 
 ---
+כדי לעשות זאת, הריצו במחשב של השרת ב-cmd: 
+ ```ipconfig```
+ אתם תראו משהו כמו: 
+```IPv4 Address. . . . . . . . . . . : your_computer_ip```
+
+ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - 
+
+```ping your_other_computer_ip```
+
+
+אתם אמורים לראות משהו כזה:
+
+Pinging *your_other_computer_ip* with 32 bytes of data:
+
+....
+
+Ping statistics for *your_other_computer_ip*:
+
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+**הערה : אם לא עבד לכם, עשו את בדיקת החיבור במחשב אחר!**
+
+בתום תהליך זה, שימרו על הכתובת ה-IP (השאירו את ה-cmd פתוח)
+ביצעו את פעולות הבאות:
 
 ## איך להפעיל את הפרויקט
 
@@ -54,28 +77,7 @@ py Main.py
  ADDR = ("IP", 8085)
  ```
  לכתובת ה-IP של המחשב שבו רץ השרת.
- כדי לעשות זאת, הריצו במחשב של השרת ב-cmd: 
- ```ipconfig```
- אתם תראו משהו כמו: 
-```IPv4 Address. . . . . . . . . . . : your_computer_ip```
-
-(ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - 
-
-```ping your_other_computer_ip```
-(
-אתם אמורים לראות משהו כזה:
-
-Pinging *your_other_computer_ip* with 32 bytes of data:
-
-....
-
-Ping statistics for *your_other_computer_ip*:
-
-    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
  
-בתום תהליך זה, שימרו על הכתובת ה-IP (השאירו את ה-cmd פתוח)
-ביצעו את פעולות הבאות:
-
 ---
 
 ### הרצת הצד לקוח
