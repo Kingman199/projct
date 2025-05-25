@@ -30,6 +30,7 @@ Client_Side ───┘ # כל קבצי הצד לקוח / אתר נמצאים �
 6. גשו לתיקיית השרת, לדוגמה:
 
 C:\Users\your_name\your_server_folder\...
+
 7. ודאו שאתם בתיקייה שבה נמצא הקובץ `Main.py`.
 8. לחצו על שורת הנתיב, הקלידו `cmd` ולחצו Enter.
 9. בחלון השחור שנפתח, הקלידו:
@@ -59,15 +60,10 @@ py Main.py
 (ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - ping``` your_other_computer_ip```)
 אתם אמורים לראות משהו כזה:
 Pinging *your_other_computer_ip* with 32 bytes of data:
-Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
-Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
-Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
-Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
-
+....
 Ping statistics for *your_other_computer_ip*:
+
     Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
-Approximate round trip times in milli-seconds:
-    Minimum = 0ms, Maximum = 0ms, Average = 0ms
  
 בתום תהליך זה, שימרו על הכתובת ה-IP (השאירו את ה-cmd פתוח)
 ביצעו את פעולות הבאות:
