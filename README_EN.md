@@ -14,6 +14,55 @@ Welcome to the project (Sunday.com)! Let’s get you up and running smoothly.
 First things first — **TURN OFF YOUR FIREWALL!**  
 (School networks can be... picky.)
 
+### How to Temporarily Disable the Firewall in Windows
+
+1. Click the `Start` or `Windows` button.  
+2. Type **Firewall** and select **Windows Defender Firewall**.  
+3. On the left menu, click **Turn Windows Defender Firewall on or off**.  
+4. Under both sections (Private and Public), select:  
+   - `Turn off Windows Defender Firewall`  
+5. Click **OK** to save and close.
+
+> Tip: If you're using a personal computer, remember to turn the firewall back on when you're done.  
+> Just follow the same steps and re-select `Turn on Windows Defender Firewall` for both Private and Public.
+
+---
+---
+
+## How to Find the Server Computer's IP Address
+
+To connect the client to the server, you’ll need the IP address of the computer running the server.
+
+### Here’s how to do it:
+
+On the server computer, open Command Prompt (`cmd`) and run:  
+```ipconfig```
+
+Look for a line that says something like:  
+
+```IPv4 Address. . . . . . . . . . . : your_computer_ip```
+
+### Verify the computers are connected
+
+On **any other computer (with its firewall off)**, open `cmd` and run:  
+```ping your_other_computer_ip```
+
+You should see something like:
+
+Pinging your_other_computer_ip with 32 bytes of data:
+
+...
+
+Ping statistics for your_other_computer_ip:
+Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+
+
+**Note:** If it doesn’t work, try the ping from another computer!
+
+Once you find the IP, keep that command window open and proceed to the next steps.
+
+---
+
 ---
 
 ## How to Run the Project
