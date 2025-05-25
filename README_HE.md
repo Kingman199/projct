@@ -23,17 +23,17 @@ Client_Side ───┘ # כל קבצי הצד לקוח / אתר נמצאים �
 ### שלב אחר שלב
 
 1. הורידו את קבצי הפרויקט.
-2. צרו שני תיקיות חדשות (או לא, אם בא לכם לחסוך בזיכרון).
+2. צרו שני פרויקטים חדשים ב-PyCharm (או לא, אם בא לכם לחסוך בזיכרון).
 3. פתחו את התיקיות `Server_Side` ו־`Client_Side` כל אחת בחלון סייר קבצים נפרד.
-4. גררו את כל הקבצים מתוך `Server_Side` לתוך תיקיית הפרויקט הראשונה.
+4. בחרו את כל הקבצים כל הקבצים מתוך `Server_Side` וגררו אותם לתוך תיקיית הפרויקט הראשונה שלכם.
 5. עשו את אותו הדבר עם `Client_Side` לתוך תיקיית הפרויקט השנייה.
-6. גשו לתיקיית השרת לדוגמה:
+6. גשו לתיקיית השרת, לדוגמה:
 C:\Users\your_name\your_server_folder\
 7. ודאו שאתם בתיקייה שבה נמצא הקובץ `Main.py`.
 8. לחצו על שורת הנתיב, הקלידו `cmd` ולחצו Enter.
 9. בחלון השחור שנפתח, הקלידו:
 py Main.py
-10. אתם אמורים לראות:
+10. אתם אמורים לראות בסוף:
  ```
  Server started on ('0.0.0.0', 8085)
  ```
@@ -52,6 +52,24 @@ py Main.py
  ADDR = ("IP", 8085)
  ```
  לכתובת ה-IP של המחשב שבו רץ השרת.
+ כדי לעשות זאת, הריצו במחשב של השרת ב-cmd: 
+ ```ipconfig```
+ אתם תראו משהו כמו: ```IPv4 Address. . . . . . . . . . . : your_computer_ip```
+(ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - ping``` your_other_computer_ip```)
+אתם אמורים לראות משהו כזה:
+Pinging *your_other_computer_ip* with 32 bytes of data:
+Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
+Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
+Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
+Reply from *your_other_computer_ip*: bytes=32 time<1ms TTL=128
+
+Ping statistics for *your_other_computer_ip*:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+ 
+בתום תהליך זה, שימרו על הכתובת ה-IP (השאירו את ה-cmd פתוח)
+ביצעו את פעולות הבאות:
 
 ---
 
