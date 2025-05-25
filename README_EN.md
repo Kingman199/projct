@@ -89,6 +89,7 @@ Once you find the IP, keep that command window open and proceed to the next step
  client_side/ConnectionWithDatabase.py
  ```
  using Notepad++ or any code editor.
+
 12. Replace `"IP"` in the following line:
  ```python
  ADDR = ("IP", 8085)
