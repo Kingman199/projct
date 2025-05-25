@@ -61,8 +61,11 @@ py Main.py
 
 (ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - ping``` your_other_computer_ip```)
 אתם אמורים לראות משהו כזה:
+
 Pinging *your_other_computer_ip* with 32 bytes of data:
+
 ....
+
 Ping statistics for *your_other_computer_ip*:
 
     Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
