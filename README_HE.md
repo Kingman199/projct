@@ -56,7 +56,9 @@ py Main.py
  לכתובת ה-IP של המחשב שבו רץ השרת.
  כדי לעשות זאת, הריצו במחשב של השרת ב-cmd: 
  ```ipconfig```
- אתם תראו משהו כמו: ```IPv4 Address. . . . . . . . . . . : your_computer_ip```
+ אתם תראו משהו כמו: 
+```IPv4 Address. . . . . . . . . . . : your_computer_ip```
+
 (ודאו שהמחשבים מקושרים: הריצו את הפקודה הזאת בכל מחשב שחומת המגן שלו כבוייה - ping``` your_other_computer_ip```)
 אתם אמורים לראות משהו כזה:
 Pinging *your_other_computer_ip* with 32 bytes of data:
