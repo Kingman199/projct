@@ -27,7 +27,6 @@ First things first — **TURN OFF YOUR FIREWALL!**
 > Just follow the same steps and re-select `Turn on Windows Defender Firewall` for both Private and Public.
 
 ---
----
 
 ## How to Find the Server Computer's IP Address
 
