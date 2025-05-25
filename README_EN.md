@@ -127,6 +127,6 @@ You can now share your link (`http://computer_ip:5000`) with friends so they can
 
 ---
 
-### Enjoy the Project  
+# Enjoy the Project  
 Built with time, effort, and probably too much love. Have fun!
 
