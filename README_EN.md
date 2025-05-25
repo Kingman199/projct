@@ -117,7 +117,7 @@ Once you find the IP, keep that command window open and proceed to the next step
  ```
 
 **Note:**  
-This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+This is a development server. Do not use it in a production deployment.
 
 ---
 
@@ -127,6 +127,6 @@ You can now share your link (`http://computer_ip:5000`) with friends so they can
 
 ---
 
-# Enjoy the Project  
+### Enjoy the Project  
 Built with time, effort, and probably too much love. Have fun!
 
