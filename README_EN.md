@@ -55,7 +55,8 @@ Ping statistics for your_other_computer_ip:
 Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
 ```
 
-**Note:** If it doesn’t work, try the ping from another computer!
+>**Note:** If it doesn’t work, try the ping from another computer!
+
 
 Once you find the IP, keep that command window open and proceed to the next steps.
 
