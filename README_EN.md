@@ -48,13 +48,11 @@ On **any other computer (with its firewall off)**, open `cmd` and run:
 
 You should see something like:
 
-Pinging your_other_computer_ip with 32 bytes of data:
-
+```Pinging your_other_computer_ip with 32 bytes of data:
 ...
-
 Ping statistics for your_other_computer_ip:
 Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
-
+```
 
 **Note:** If it doesn’t work, try the ping from another computer!
 
@@ -62,7 +60,6 @@ Once you find the IP, keep that command window open and proceed to the next step
 
 ---
 
----
 
 ## How to Run the Project
 
