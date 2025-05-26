@@ -95,6 +95,7 @@ Once you find the IP, keep that command window open and proceed to the next step
  ADDR = ("IP", 8085)
  ```
  with the IP address of the computer running the server.
+
 12.5. Save the file/press ctrl+s.
 
 ---
