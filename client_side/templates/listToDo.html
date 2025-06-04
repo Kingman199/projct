@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  margin: 0;
+  min-width: 250px;
+  display: flex;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  width: 100%;
+}
+
+
+/* Sidebar styles */
+.sidebar {
+    width: 250px;
+    background: #1f2937;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-250px);
+}
+
+.sidebar .logo {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.5em;
+    font-weight: bold;
+    border-bottom: 1px solid #374151;
+}
+
+.sidebar .nav-menu {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+}
+
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: #b0bec5;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sidebar .nav-item:hover {
+    background: #41475a;
+    color: white;
+}
+
+.sidebar .nav-icon {
+    margin-right: 10px;
+}
+
+.sidebar .footer {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid #374151;
+    font-size: 0.9em;
+}
+/* Main content styling */
+body {
+  margin: 0;
+  min-width: 250px;
+  display: flex;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+}
+
+.container {
+  display: flex;
+  width: 100%;
+}
+
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+  width: 100%;
+}
+
+.header {
+  background: linear-gradient(90deg, #ff7e5f, #feb47b);
+  padding: 30px 40px;
+  color: white;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+ul {
+  margin: 20px 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+ul li {
+  cursor: pointer;
+  padding: 12px 8px 12px 40px;
+  background: white;
+  font-size: 18px;
+  transition: 0.3s ease;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+  position: relative;
+}
+
+ul li:nth-child(odd) {
+  background: #fafafa;
+}
+
+ul li:hover {
+  background: #f5f5f5;
+}
+
+ul li.checked {
+  background: #88c999;
+  color: white;
+  text-decoration: line-through;
+}
+
+ul li.checked::before {
+  content: '';
+  position: absolute;
+  border-color: white;
+  border-style: solid;
+  border-width: 0 2px 2px 0;
+  top: 10px;
+  left: 16px;
+  transform: rotate(45deg);
+  height: 15px;
+  width: 7px;
+}
+
+.close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  color: #888;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.close:hover {
+  color: #f44336;
+}
+
+input {
+  width: 70%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-right: 10px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+input:focus {
+  border-color: #feb47b;
+}
+
+.addBtn {
+  padding: 10px;
+  width: 25%;
+  background: #feb47b;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 20px;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.addBtn:hover {
+  background-color: #ff7e5f;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 15px;
+  }
+
+  input {
+    width: calc(100% - 80px);
+  }
+
+  .addBtn {
+    width: 80px;
+    padding: 12px;
+  }
+}
+
+
+
+            .text-header {
+            text-align: center;
+            top: 30;
+            left: 0
+
+            padding: 30px;
+            width: 90%;
+            max-width: 700px;
+        }
+
+        .text-header h1 {
+            font-size: 2rem;
+            font-style: italic;
+            color: white;
+            margin: 0;
+        }
+
+        .text-header span {
+            font-size: 1rem;
+            color: #d8f2f2;
+            font-style: normal;
+        }
+
+//<!-- AI -->
+#inputField {
+  position: relative;
+  z-index: 10; /* Ensures input is above other elements */
+}
+
+#suggestionBox {
+  position: absolute;
+  top: 100%; /* Dynamically places the suggestions below the input field */
+  left: 0;
+  width: 100%; /* Matches the width of the input field */
+  background: #ffffff;
+  border: 1px solid #ccc;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none; /* Initially hidden */
+}
+
+.suggestion {
+  padding: 12px 16px;
+  font-size: 16px;
+  color: #333;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  border-bottom: 1px solid #ddd;
+  transition: background 0.2s, color 0.2s;
+}
+
+.suggestion:last-child {
+  border-bottom: none;
+}
+
+.suggestion:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+
+</style>
+</head>
+<body>
+
+  <!-- Main Content -->
+  <div class="main-content">
+
+    <div id="myDIV" class="header">
+      <form id="todoForm">
+        <h2 style="margin:5px">My To Do List</h2>
+        <!-- AI Suggestions -->
+        <div id="suggestionBox" style="display: none;"></div>
+        <input type="text" id="taskInput" placeholder="Search for tasks..." />
+
+        <span onclick="newElement()" class="addBtn">Add</span>
+
+
+      </form>
+    </div>
+
+      <ul id="myUL">
+      {% for item, checked in task_data %}
+        <li class="{{ 'checked' if checked else '' }}">{{ item }}
+          <span class="close">x</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+
+
+  </div>
+
+
+<script>
+const inputField = document.getElementById("inputField");
+const suggestionBox = document.getElementById("suggestionBox");
+
+// Function to show suggestions
+function showSuggestions(suggestions) {
+  if (suggestions.length === 0) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  suggestionBox.innerHTML = suggestions
+    .map((suggestion) => `<div class="suggestion">${suggestion}</div>`)
+    .join("");
+  suggestionBox.style.display = "block";
+}
+
+// Function to clear suggestions
+function clearSuggestions() {
+  suggestionBox.style.display = "none";
+  suggestionBox.innerHTML = "";
+}
+
+// Event listener for input with async fetch
+inputField.addEventListener("input", async function () {
+  const query = inputField.value.trim();
+  if (query.length > 1) {
+    try {
+      const response = await fetch("/get_suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+
+      if (response.ok) {
+        const suggestions = await response.json();
+        showSuggestions(suggestions);
+      } else {
+        console.error("Failed to fetch suggestions:", response.statusText);
+        clearSuggestions();
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      clearSuggestions();
+    }
+  } else {
+    clearSuggestions();
+  }
+});
+
+// Event listener for `Esc` key to hide suggestions
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    clearSuggestions();
+  }
+});
+
+// Hide suggestions on click outside
+document.addEventListener("click", (e) => {
+  if (!inputField.contains(e.target) && !suggestionBox.contains(e.target)) {
+    clearSuggestions();
+  }
+});
+
+// Add interactivity to suggestions
+suggestionBox.addEventListener("click", (e) => {
+  if (e.target.classList.contains("suggestion")) {
+    inputField.value = e.target.textContent;
+    clearSuggestions();
+  }
+});
+
+
+
+
+
+// Add New Task
+function newElement() {
+  const inputValue = document.getElementById("myInput").value;
+  if (inputValue === "") {
+    alert("You must write something!");
+    return;
+  }
+
+  const li = document.createElement("li");
+  li.textContent = inputValue;
+
+  const closeButton = document.createElement("span");
+  closeButton.textContent = "x";
+  closeButton.className = "close";
+  closeButton.onclick = function () {
+    this.parentElement.remove();
+  };
+
+  li.appendChild(closeButton);
+
+  li.onclick = function () {
+    this.classList.toggle("checked");
+  };
+
+  document.getElementById("myUL").appendChild(li);
+  document.getElementById("myInput").value = "";
+}
+
+</script>
+
+</body>
+</html>

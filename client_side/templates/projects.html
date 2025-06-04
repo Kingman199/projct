@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Dashboard</title>
+
+    <script src="static/JS/disable_right_click.js" defer></script>
+                    <!--      A  F  K      -->
+    <link rel="stylesheet" href="/static/CSS/AFK_Time.css">
+    <script src="/static/js/AFK_Time.js" defer></script>
+               <!--      F  R  I  E  N  D  S      -->
+    <script src="/static/js/friends.js" defer></script>
+
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(45deg, #1f4068, #e43f5a);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            letter-spacing: 1.5px;
+        }
+
+        #add-project-button {
+            background-color: #ff5c70;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #add-project-button:hover {
+            background-color: #ff758a;
+            transform: translateY(-2px);
+        }
+
+        /* Main Layout */
+        main {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        /* Project Grid */
+        #project-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        /* Project Card */
+        .project-card {
+            background-color: #1f4068;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .project-name,
+        .project-description {
+            display: block;
+            background: #162447;
+            color: #ccc;
+            border: 1px solid #1f4068;
+            border-radius: 10px;
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 1rem;
+            resize: none;
+            transition: border 0.3s ease, background 0.3s ease;
+        }
+
+        .project-name:focus,
+        .project-description:focus {
+            border-color: #ff5c70;
+            background: #1b2d4f;
+            outline: none;
+        }
+
+        .delete-button {
+            background-color: #e43f5a;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #ff5c70;
+            transform: scale(1.05);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.3rem;
+            }
+
+            #add-project-button {
+                font-size: 0.9rem;
+                padding: 10px 18px;
+            }
+        }
+    </style>
+    <style>
+        /* Top Menu Styling */
+    .topmenu {
+      background: #0073e6;
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topmenu .logo {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    .topmenu nav {
+      display: flex;
+      align-items: center;
+    }
+    .topmenu nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-size: 1em;
+      transition: opacity 0.3s;
+    }
+    .topmenu nav a:hover {
+      opacity: 0.8;
+    }
+    .account-menu {
+      position: relative;
+      display: inline-block;
+    }
+    .account-menu button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: #fff;
+      min-width: 150px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 4px;
+    }
+    .dropdown a {
+      color: #333;
+      padding: 10px 15px;
+      text-decoration: none;
+      display: block;
+    }
+    .dropdown a:hover {
+      background-color: #f0f0f0;
+    }
+    .account-menu:hover .dropdown {
+      display: block;
+    }
+    /* Main content styling */
+    .content {
+      padding: 20px;
+    }
+    </style>
+
+<!--    project dropdown menu   -->
+<style>
+    .project-card {
+        position: relative;
+        padding: 20px;
+    }
+    .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .project-options {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .options-toggle {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: white;
+        cursor: pointer;
+    }
+    .options-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        background: #162447;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        list-style: none;
+        padding: 10px;
+        margin: 0;
+        width: 150px;
+    }
+    .options-menu li {
+        margin: 5px 0;
+    }
+    .options-item {
+        background: none;
+        border: none;
+        color: white;
+        padding: 10px;
+        text-align: left;
+        width: 100%;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .options-item:hover {
+        background: #1b2d4f;
+    }
+    .project-options .options-menu.show {
+        display: block;
+    }
+</style>
+
+<!--   WORKERS   -->
+<style>
+.worker-popup-container {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', Courier, monospace;
+  color: #33FF33;
+  text-shadow: 0 0 5px #33FF33;
+  z-index: 1000;
+}
+
+.worker-popup-box {
+  background: #000;
+  border: 2px solid #33FF33;
+  padding: 20px;
+  border-radius: 4px;
+  width: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.worker-popup-close {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #33FF33;
+}
+
+.worker-popup-title {
+  margin-bottom: 15px;
+  font-size: 18px;
+  border-bottom: 1px solid #33FF33;
+  padding-bottom: 5px;
+}
+
+.worker-list {
+  margin-top: 10px;
+}
+
+.worker-card {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+  border-bottom: 1px dashed #33FF33;
+  transition: background 0.3s;
+}
+
+.worker-card:hover {
+  background: rgba(51, 255, 51, 0.1);
+}
+
+.worker-blip {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: #33FF33;
+  border-radius: 50%;
+  margin-right: 10px;
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 1; }
+  to { opacity: 0.3; }
+}
+</style>
+
+</head>
+<div id="idleTimeoutModal" class="idle-modal hidden" role="dialog" aria-modal="true">
+    <div class="idle-modal-content">
+        <h2>You’ve been inactive for a while.</h2>
+        <p>You’ll be logged out in a few seconds. Do you want to stay logged in?</p>
+        <button id="stayLoggedInBtn">Stay Logged In</button>
+        <button id="logoutBtn">Logout Now</button>
+    </div>
+</div>
+
+<body>
+
+    {% include 'sidebar.html' %}
+    {% include 'topMenu.html' %}
+    <header>
+        <h1>Project Dashboard</h1>
+        <button id="add-project-button">+ Add New Project</button>
+    </header>
+<main>
+    <section id="project-list" aria-label="List of Projects">
+        {% for project in projects %}
+            <div class="project-card" data-id="{{ project.id }}">
+                <div class="project-header">
+                    <input class="project-name editable" value="{{ project.name }}" placeholder="Project Name">
+                    <div class="project-options">
+                        <button class="options-toggle">&#x22EE;</button>
+                        <ul class="options-menu">
+                        <li><button class="options-item delete">Delete Project</button></li>
+                        <li><button class="options-item duplicate">Duplicate Project</button></li>
+                        <li><button class="options-item share">Share Project</button></li>
+                        {% if session["role"] == "Manager" or session["workers"] %}
+                            <li><button class="assign-to-worker">Assign to Workers</button></li>
+                        {% endif %}
+                    </ul>
+
+                    </div>
+                </div>
+                <textarea class="project-description editable" placeholder="Project Description">{{ project.description }}</textarea>
+            </div>
+        {% endfor %}
+    </section>
+    <!-- Shared Projects Section (Only displayed if there are shared projects) -->
+    {% if shared_projects %}
+    <section id="shared-project-list" aria-label="Shared Projects">
+        <h2>Shared Projects</h2>
+        {% for project in shared_projects %}
+        <div class="project-card" data-id="{{ project.id }}">
+            <div class="project-header">
+                <!-- Optionally disable editing for shared projects -->
+                <input class="project-name editable" value="{{ project.name }}" placeholder="Project Name" disabled>
+                <div class="project-options">
+                    <button class="options-toggle">&#x22EE;</button>
+                    <ul class="options-menu">
+                        <!-- You might only allow sharing for shared projects, or adjust options as needed -->
+                        <li><button class="options-item share">Share Project</button></li>
+                    </ul>
+                </div>
+            </div>
+            <textarea class="project-description editable" placeholder="Project Description" disabled>{{ project.description }}</textarea>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+</main>
+
+        <!-- Share Popup -->
+        <div id="share-popup" class="popup-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+          <div class="popup-box" style="background: #fff; color: #333; padding: 20px; border-radius: 8px; width: 300px; position: relative;">
+            <span id="share-popup-close" style="position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px;">&times;</span>
+            <h2>Select a friend to share with</h2>
+            <div id="friend-list-for-share" style="margin-top: 15px;">
+              {% for friend in session['friends'] %}
+              <div class="friend-card" data-friend-id="{{ friend.id }}" style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-bottom: 1px solid #ddd;">
+                <img src="{{ friend.profile_pic }}" alt="Profile Picture" width="40" style="border-radius: 50%; margin-right: 10px;">
+                <span class="friend-name">{{ friend.username }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+    <!-- Worker Popup Modal -->
+<div id="worker-popup" class="worker-popup-container">
+  <div class="worker-popup-box">
+    <span id="worker-popup-close" class="worker-popup-close">&times;</span>
+    <h2 class="worker-popup-title">[ Assign Project ]</h2>
+    <p>Select a worker from the list:</p>
+    <div id="worker-list" class="worker-list">
+      {% for worker in session['workers'] %}
+      <div class="worker-card" data-worker-id="{{ worker.id }}">
+        <span class="worker-blip"></span>
+        <span class="worker-name">{{ worker.username }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+    {% include 'popup.html' %}
+
+
+
+<!--    ADD PROJECT    -->
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const addButton = document.getElementById('add-project-button');
+
+                addButton.addEventListener('click', () => {
+                    fetch('/add_project', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: "new",
+                    id: Date.now(),  // ← lazy ID generator
+                    name: "New Project",
+                    description: "Describe your project here."
+                })
+            })
+
+        .then(response => response.json())
+        .then(newProject => {
+            if (newProject.error) {
+                alert("Error adding project: " + newProject.error);
+                return;
+            }
+
+            const projectCard = document.createElement('div');
+            projectCard.classList.add('project-card');
+            projectCard.dataset.id = newProject.id;
+
+            projectCard.innerHTML = `
+                <div class="project-header">
+                    <input class="project-name editable" value="${newProject.name}" placeholder="Project Name">
+                    <div class="project-options">
+                        <button class="options-toggle">&#x22EE;</button>
+                        <ul class="options-menu">
+                            <li><button class="options-item delete">Delete Project</button></li>
+                            <li><button class="options-item duplicate">Duplicate Project</button></li>
+                            <li><button class="options-item share">Share Project</button></li>
+                        </ul>
+                    </div>
+                </div>
+                <textarea class="project-description editable" placeholder="Project Description">${newProject.description || ''}</textarea>
+            `;
+
+            document.getElementById('project-list').appendChild(projectCard);
+        })
+        .catch(err => {
+            console.error("Add project failed:", err);
+            alert("An error occurred while adding the project.");
+        });
+    });
+});
+</script>
+
+<!--                   -->
+    <script>
+        const projectList = document.getElementById('project-list');
+        let nextProjectId = {{ projects | length }} + 1;
+
+    projectList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('duplicate-button')) {
+            console.log("Duplicate button clicked!"); // Debug log
+
+            const projectCard = e.target.closest('.project-card');
+            const projectId = projectCard.dataset.id;
+            console.log("Duplicating project with ID:", projectId);
+
+            fetch('/add_project', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: "duplicate",
+                    original_project_id: projectId,
+                    id: nextProjectId // Assign new ID for duplicate
+                })
+            })
+            .then(response => response.json())
+            .then(duplicatedProject => {
+                console.log("Response from server:", duplicatedProject); // Debug log
+
+                if (duplicatedProject.error) {
+                    alert("Error duplicating project: " + duplicatedProject.error);
+                    return;
+                }
+
+                // Append duplicate project to UI
+                const duplicateCard = document.createElement('div');
+                duplicateCard.classList.add('project-card');
+                duplicateCard.dataset.id = duplicatedProject.id;
+
+                duplicateCard.innerHTML = `
+                    <input class="project-name editable" value="${duplicatedProject.name}" placeholder="Project Name">
+                    <textarea class="project-description editable" placeholder="Project Description"></textarea>
+                    <button class="duplicate-button">Duplicate</button>
+                    <button class="delete-button">Delete</button>
+                `;
+
+                projectList.appendChild(duplicateCard);
+                nextProjectId++;
+            })
+            .catch(error => console.error("Error:", error));
+            }
+        });
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const projectList = document.getElementById('project-list');
+        const sharedProjectList = document.getElementById('shared-project-list');
+
+        function openProject(e) {
+            const projectCard = e.target.closest('.project-card');
+            if (!projectCard) return;
+
+            const projectId = projectCard.getAttribute('data-id');  // Ensure this exists
+            const projectNameInput = projectCard.querySelector('.project-name');
+            const projectName = projectNameInput ? projectNameInput.value.trim() : '';
+
+            console.log("Selected Project ID:", projectId);
+            console.log("Selected Project Name:", projectName);
+
+            if (!projectId || !projectName) {
+                alert('Project information is missing.');
+                return;
+            }
+
+            // Redirect to the correct project URL
+            window.location.href = `/project/${encodeURIComponent(projectName)}`;
+        }
+
+        if (projectList) projectList.addEventListener('dblclick', openProject);
+        if (sharedProjectList) sharedProjectList.addEventListener('dblclick', openProject);
+    });
+
+
+        projectList.addEventListener('input', (e) => {
+            if (e.target.classList.contains('editable')) {
+                const projectCard = e.target.closest('.project-card');
+                const projectId = projectCard.dataset.id;
+                const name = projectCard.querySelector('.project-name').value;
+                const description = projectCard.querySelector('.project-description').value;
+
+                fetch(`/edit_project/${projectId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+            }
+        });
+    </script>
+    <script>
+    function sendFriendRequest() {
+        let email = document.getElementById("friend-email").value;
+
+        fetch("/send_friend_request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiver_email: email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success || data.error);
+            closeFriendRequestPopup();
+        });
+    }
+</script>
+
+<!--    ASSIGN TO WORKERS    -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const popup = document.getElementById('worker-popup');
+  const closeBtn = document.getElementById('worker-popup-close');
+  const workerList = document.getElementById('worker-list');
+  let currentProjectId = null;
+
+  // Handle assign button click
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('assign-to-worker')) {
+      const card = e.target.closest('.project-card');
+      currentProjectId = card.getAttribute('data-id');
+      popup.style.display = 'flex';
+    }
+
+    // Close button
+    if (e.target.id === 'worker-popup-close') {
+      popup.style.display = 'none';
+    }
+
+    // Worker card click
+    if (e.target.closest('.worker-card')) {
+      const workerId = e.target.closest('.worker-card').getAttribute('data-worker-id');
+      fetch('/assign_project_to_worker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker_id: workerId, project_id: currentProjectId })
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          alert("Project assigned successfully!");
+          popup.style.display = 'none';
+        } else {
+          alert("Error: " + (result.error || "Unknown error."));
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Something went wrong.");
+      });
+    }
+  });
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let currentProjectId = null;
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('options-item') && e.target.classList.contains('share')) {
+            e.preventDefault();
+            const projectCard = e.target.closest('.project-card');
+            if (!projectCard) {
+                console.error("Project card not found.");
+                return;
+            }
+            currentProjectId = projectCard.getAttribute('data-id');
+            document.getElementById('share-popup').style.display = 'flex'; // Fixed ID
+        }
+    });
+
+    document.getElementById('share-popup-close').addEventListener('click', function() {
+        document.getElementById('share-popup').style.display = 'none'; // Fixed ID
+    });
+
+    document.getElementById('friend-list-for-share').addEventListener('click', function(e) {
+        const friendEntry = e.target.closest('.friend-card'); // Fixed selector
+        if (!friendEntry) return;
+
+        const friendId = friendEntry.getAttribute('data-friend-id');
+        if (!friendId || !currentProjectId) return;
+
+        document.getElementById('share-popup').style.display = 'none'; // Fixed ID
+
+        fetch('/share_project', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project_id: currentProjectId, friend_id: friendId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Project shared successfully!");
+            } else {
+                alert("Failed to share project: " + (data.error || "Unknown error."));
+            }
+        })
+        .catch(error => {
+            console.error("Error sharing project:", error);
+            alert("An error occurred while sharing the project.");
+        });
+    });
+});
+
+</script>
+
+<!--    PROJECT DROP DOWN   -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.options-toggle').forEach(button => {
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            let menu = button.nextElementSibling;
+            document.querySelectorAll('.options-menu').forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+            menu.classList.toggle('show');
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.options-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    });
+
+    document.querySelectorAll('.options-item.delete').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            const projectCard = button.closest('.project-card');
+            const projectId = projectCard.dataset.id;
+
+            const sessionId = sessionStorage.getItem("session_id");  // Make sure this is set somewhere
+
+            try {
+                const response = await fetch('/delete_project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: projectId, session_id: sessionId })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    projectCard.remove();
+                } else {
+                    alert("Failed to delete project: " + result.error);
+                }
+            } catch (error) {
+                console.error("Delete failed:", error);
+                alert("An error occurred while deleting the project.");
+            }
+        });
+    });
+}); // ← This was missing
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const popup = document.getElementById('worker-popup');
+  const closeBtn = document.getElementById('worker-popup-close');
+  const workerList = document.getElementById('worker-list');
+  let currentProjectId = null;
+
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('assign-to-worker')) {
+      const card = e.target.closest('.project-card');
+      currentProjectId = card.getAttribute('data-id');
+      popup.style.display = 'flex';
+    }
+
+    if (e.target.classList.contains('worker-popup-close')) {
+      popup.style.display = 'none';
+    }
+
+    if (e.target.closest('.worker-card')) {
+      const workerId = e.target.closest('.worker-card').getAttribute('data-worker-id');
+      console.log('Assigning project', currentProjectId, 'to worker', workerId);
+
+      // Replace with fetch call if needed
+      popup.style.display = 'none';
+    }
+  });
+});
+</script>
+
+</body>
+</html>

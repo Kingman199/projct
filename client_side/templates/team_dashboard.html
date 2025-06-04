@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Team Dashboard</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            background: #f9fafb;
+        }
+
+        h1, h3 {
+            color: #1f2937;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            width: 70%;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+        }
+
+        #tasks {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            background-color: #fff;
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .task {
+            padding: 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .typing-indicator {
+            font-style: italic;
+            color: #6b7280;
+        }
+
+        .chat-message {
+            margin-bottom: 0.5em;
+        }
+
+        .chat-message strong {
+            color: #2563eb;
+        }
+
+        #chat-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        #chat-header {
+            background-color: #2563eb;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+
+        #chat-body {
+            display: none;
+            padding: 1rem;
+        }
+
+        #chat-body.open {
+            display: block;
+        }
+
+        #log {
+            height: 150px;
+            overflow-y: auto;
+            margin-bottom: 0.5rem;
+            border: 1px solid #eee;
+            padding: 0.5rem;
+            background: #fefefe;
+        }
+    </style>
+</head>
+<body>
+    <h1>👥 Team Dashboard</h1>
+    <p>Collaborate with your team in real-time.</p>
+
+    <!-- Task Updates -->
+    <div>
+        <h3>✅ Task Activity</h3>
+        <div id="tasks">
+            <em>No task activity yet...</em>
+        </div>
+    </div>
+
+    <!-- Floating Chat Box -->
+    <div id="chat-box">
+        <div id="chat-header">💬 Team Chat</div>
+        <div id="chat-body">
+            <div id="log">
+                {% for msg in messages %}
+                    <div class="chat-message"><strong>{{ msg['Sender'] }}:</strong> {{ msg['Message'] }}</div>
+                {% endfor %}
+            </div>
+            <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+            <button id="sendBtn">Send</button>
+            <div id="typing" class="typing-indicator"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const projectId = "{{ session['project_id'] | safe }}";
+        const messageInput = document.getElementById("messageInput");
+        const log = document.getElementById("log");
+        const tasks = document.getElementById("tasks");
+        const typingIndicator = document.getElementById("typing");
+        let typingTimeout;
+
+        document.getElementById("chat-header").addEventListener("click", () => {
+            document.getElementById("chat-body").classList.toggle("open");
+        });
+
+        socket.on("connect", () => {
+            if (projectId && projectId !== "None") {
+                socket.emit("join_project", { project_id: projectId });
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message !== "") {
+                socket.emit("team_update", {
+                    message: message,
+                    project_id: projectId
+                });
+                messageInput.value = "";
+                typingIndicator.textContent = "";
+            }
+        }
+
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        messageInput.addEventListener("input", () => {
+            socket.emit("typing", { project_id: projectId });
+        });
+
+        socket.on("team_update", data => {
+            const div = document.createElement("div");
+            div.classList.add("chat-message");
+            div.innerHTML = `<strong>${data.sender}:</strong> ${data.message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        });
+
+        socket.on("user_typing", data => {
+            typingIndicator.textContent = `${data.username} is typing...`;
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingIndicator.textContent = "";
+            }, 1500);
+        });
+
+        socket.on("task_updated", data => {
+            const defaultMessage = tasks.querySelector("em");
+            if (defaultMessage) {
+                defaultMessage.remove();
+            }
+
+            const taskDiv = document.createElement("div");
+            taskDiv.classList.add("task");
+            taskDiv.innerHTML = `<strong>Task Updated:</strong> ${data.updated_task.TaskName}<br>🔁 ${data.changes.join(", ")}`;
+            tasks.prepend(taskDiv);
+        });
+
+        socket.on("task_deleted", data => {
+            const defaultMessage = tasks.querySelector("em");
+            if (defaultMessage) {
+                defaultMessage.remove();
+            }
+
+            const taskDiv = document.createElement("div");
+            taskDiv.classList.add("task");
+            taskDiv.innerHTML = `<strong>Task Deleted:</strong> ID ${data.task_id}`;
+            tasks.prepend(taskDiv);
+        });
+    </script>
+</body>
+</html>

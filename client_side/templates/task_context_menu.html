@@ -1,0 +1,93 @@
+
+    <div id="taskContextMenu" class="context-menu">
+      <!-- General Task Options -->
+      <div class="menu-item" onclick="editTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M3 17.25V21h3.75l11.1-11.1-3.75-3.75L3 17.25zm18.71-11.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path>
+          </svg>
+        </span>
+        Edit Task
+      </div>
+      <div class="menu-item" onclick="deleteTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-4l-1-1H10L9 4H5v2h14V4z"></path>
+          </svg>
+        </span>
+        Delete Task
+      </div>
+
+      <!-- Collaboration -->
+      <div class="menu-item" onclick="assignUser()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 12c2.67 0 8 1.33 8 4v2H4v-2c0-2.67 5.33-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+          </svg>
+        </span>
+        Assign User
+      </div>
+      <div class="menu-item" onclick="addComment()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M20 2H4a2 2 0 0 0-2 2v16l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"></path>
+          </svg>
+        </span>
+        Add Comment
+      </div>
+
+      <!-- Advanced Actions -->
+      <div class="menu-item" onclick="viewHistory()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3h2zM12 7h2v6h-4V9h2z"></path>
+          </svg>
+        </span>
+        View History
+      </div>
+      <div class="menu-item" onclick="archiveTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M4 4h16v4H4zm1 6h14v10H5zm7-4h2v2h-2zm-3 0h2v2H9zm6 0h2v2h-2z"></path>
+          </svg>
+        </span>
+        Archive Task
+      </div>
+
+      <!-- Customization -->
+      <div class="menu-item" onclick="changeColor()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
+          </svg>
+        </span>
+        Change Color
+      </div>
+      <div class="menu-item" onclick="tagTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M20 6l-1.4-1.4L10 13.2V18h4.8l8.4-8.4zM5.2 3H2v3.2l11.8 11.8L17 14z"></path>
+          </svg>
+        </span>
+        Add Tag
+      </div>
+
+      <!-- Other Utilities -->
+      <div class="menu-item" onclick="exportTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M5 20h14v2H5zm4-12V3H6v5H2l5 5 5-5z"></path>
+          </svg>
+        </span>
+        Export Task
+      </div>
+      <div class="menu-item" onclick="pinTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M15 6l2 2 6-6-2-2zM7 9H4a1 1 0 0 0-1 1v7l5 5v-5h6v-2h-6V9z"></path>
+          </svg>
+        </span>
+        Pin Task
+      </div>
+
+    </div>

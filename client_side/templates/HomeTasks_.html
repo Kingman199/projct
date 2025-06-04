@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ project_name }}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">
+
+    <!-- Link to your CSS file -->
+<!--    <link rel="stylesheet" href="static/CSS/HomeTasks.css">-->
+<!--        <link rel="stylesheet" href="static/js/disable_click.js">-->
+
+                            <!-- D A T E -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+                            <!-- A F K -->
+        <link rel="stylesheet" href="/static/CSS/AFK_Time.css">
+
+        <script src="/static/JS/HomeTasks.js" defer></script>
+        <script src="/static/JS/AFK_Time.js" defer></script>
+
+                      <!--   Table & Sprints   -->
+        <link rel="stylesheet" href="/static/CSS/HomeTasks/Table & Sprints.css">
+                          <!--   M A I N   -->
+        <link rel="stylesheet" href="/static/CSS/HomeTasks/Main.css">
+                       <!--   W O R K E R S   -->
+        <link rel="stylesheet" href="/static/CSS/HomeTasks/workers.css">
+        <script src="/static/JS/Tasks/Workers.js" defer></script>
+                       <!--    T A S K S     -->
+        <script src="/static/js/Tasks/Delete_Task.js" defer></script>
+        <script type="module" src="{{ url_for('static', filename='js/Tasks/DueDate_Task.js') }}"></script>
+        <script type="module" src="{{ url_for('static', filename='js/Tasks/Add_Task.js') }}"></script>
+        <link rel="stylesheet" href="/static/CSS/Tasks/Task_DueDate.css">
+        <link rel="stylesheet" href="/static/CSS/Tasks/Add_Task.css">
+        <link rel="stylesheet" href="/static/CSS/Tasks/Task_Name.css">
+        <link rel="stylesheet" href="/static/CSS/Tasks/New_Task.css">
+
+<!--        <script type="module" src="/static/JS/Tasks/Add_Task.js"></script>-->
+
+
+
+    <!--<link rel="stylesheet" href="static/CSS/task_context_menu.css">-->
+
+
+<!--    Check  Box    -->
+<style>
+
+    /* Checkbox Styling */
+th:first-child, td:first-child {
+  text-align: center;
+  width: 30px;
+}
+
+/* Smooth transition for row background and shadow effects */
+.task-row {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.task-row.selected {
+  background-color: #e0f7fa; /* Light cyan background */
+  box-shadow: 0px 4px 8px rgba(0, 176, 255, 0.2); /* Soft glowing effect */
+  position: relative;
+  z-index: 1;
+}
+
+/* Add shimmering animation under the task row */
+.task-row.selected::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(0, 176, 255, 0.3), rgba(0, 176, 255, 0.1));
+  animation: shine 2s infinite linear;
+}
+
+/* Subtle shimmer effect animation */
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+</style>
+<!--    Task_Menu_Pop    -->
+<style>
+  /* Task menu styling */
+  #task-menu {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 30;
+    display: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    min-width: 250px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* Fixed position for PC */
+  @media (min-width: 769px) {
+    #task-menu {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Mobile: anchored near first checked task */
+  @media (max-width: 768px) {
+    #task-menu {
+      position: absolute;
+      transform: none;
+    }
+  }
+
+  /* Task count box */
+  .task-count-box {
+    background: #2563eb;
+    color: white;
+    //font-weight: bold;
+    top: -100px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  /* Sprint dots */
+  .sprint-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    bottom: 0;
+  }
+  .sprint-dots span.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    bottom: 0;
+  }
+
+  /* Action buttons */
+  .task-menu-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .task-menu-actions button {
+    padding: 2px 10px;
+    border: none;
+    background-color: #2563eb;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+<!--   Collapse   -->
+<style>
+    .collapsed-wrapper {
+    background: #2A2E3B;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 5px;
+    color: #B0B3C7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.task-summary {
+    font-size: 0.9rem;
+}
+
+.status-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-bar {
+    display: flex;
+    width: 100px;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.status-segment {
+    height: 100%;
+}
+
+</style>
+<!--    Commenting  -->
+<style>
+    /* Modal Styling */
+    #commentModal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+        background: white;
+        width: 90%;
+        max-width: 600px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        max-height: 80%;
+        padding: 20px;
+    }
+
+    #commentModal .modal-content {
+        padding: 20px;
+    }
+
+    #commentModal h2 {
+        margin-bottom: 20px;
+    }
+
+    #commentModal textarea {
+        width: 100%;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    #commentModal button {
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    #commentModal button:hover {
+        background: #0056b3;
+    }
+
+    #commentModal .close {
+        float: right;
+        font-size: 1.5em;
+        cursor: pointer;
+    }
+
+    #commentModal .close:hover {
+        color: #ff5c5c;
+    }
+
+    /* Comment Card Styling */
+    .comment-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        padding: 15px;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .comment-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .comment-timestamp {
+        color: #888;
+        font-size: 0.9em;
+    }
+
+    .comment-content {
+        margin-bottom: 10px;
+        font-size: 1em;
+        line-height: 1.5;
+    }
+
+    .file-attachments {
+        margin-top: 10px;
+    }
+
+    .file-thumbnail {
+        max-width: 100px;
+        max-height: 100px;
+        border-radius: 4px;
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+
+    .file-link {
+        display: block;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .file-link:hover {
+        text-decoration: underline;
+    }
+
+    .comment-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .action-btn {
+        background: #f4f4f4;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .action-btn:hover {
+        background: #e2e2e2;
+    }
+
+    .delete-btn {
+        color: #ff5c5c;
+    }
+
+    .reaction {
+        cursor: pointer;
+        margin-left: 10px;
+        font-size: 1.2em;
+    }
+
+    .reaction:hover {
+        opacity: 0.7;
+    }
+</style>
+
+<!-- C H A T-->
+    <style>
+#chat-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #2563eb;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 30px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+#chat-window {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  width: 300px;
+  height: 400px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+#chat-header {
+  background: #2563eb;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+#chat-messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+#chat-input {
+  border: none;
+  border-top: 1px solid #ccc;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+</style>
+
+
+    <style>
+/* Button styling */
+.open-modal-btn {
+  background-color: #007BFF;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.open-modal-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+/* Modal overlay */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Modal open state */
+.modal.show {
+  display: block;
+  opacity: 1;
+}
+
+/* Modal closing state */
+.modal.closing {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Modal content */
+.modal-content {
+  background: linear-gradient(135deg, #ffffff, #f2f2f2);
+  margin: 10% auto;
+  padding: 30px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  position: relative;
+  transform: translateY(0);
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  text-align: center;
+}
+
+/* When closing modal content, slide it up */
+.modal.closing .modal-content {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+/* Close button */
+.close {
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+.close:hover {
+  color: #000;
+}
+
+/* Input field styling */
+.modal-content input[type="text"] {
+  width: 80%;
+  padding: 10px;
+  margin: 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.modal-content input[type="text"]:focus {
+  outline: none;
+  border-color: #007BFF;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Create button styling */
+.create-btn {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 10px 25px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.create-btn:hover {
+  background-color: #1e7e34;
+  transform: scale(1.05);
+}
+
+    </style>
+
+
+
+<!--     TEST   -->
+  <style>
+    /* you can keep styles inline or in style.css */
+    .context-menu {
+      position: absolute;
+      display: none;
+      background: #ffffff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      z-index: 9999 !important;
+      min-width: 150px;
+      padding: 10px 0;
+    }
+
+    .context-menu .menu-item {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+
+    .context-menu .menu-item:hover {
+      background-color: #f3f4f6;
+    }
+  .context-menu li {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.context-menu li:hover {
+  background-color: #f2f2f2;
+}
+  </style>
+</head>
+<!-- Custom Idle Timeout Modal (hidden by default) -->
+<div id="idleTimeoutModal" class="idle-modal hidden" role="dialog" aria-modal="true">
+    <div class="idle-modal-content">
+        <h2>You’ve been inactive for a while.</h2>
+        <p>You’ll be logged out in a few seconds. Do you want to stay logged in?</p>
+        <button id="stayLoggedInBtn">Stay Logged In</button>
+        <button id="logoutBtn">Logout Now</button>
+    </div>
+</div>
+<!--<body>-->
+<body data-project-id="{{ project_id }}" data-session-id="{{ session['session_id'] }}">
+
+<!--    <input type="hidden" id="project-id" value="{{ project_id }}">-->
+
+    <!-- Sidebar -->
+    {% include 'sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content">
+<!--        <h1> {{ session['username'] }} </h1>-->
+      <header class="dashboard-header">
+        <h1>Task Manager - {{ project_name }} </h1>
+<!-- Button to open the modal -->
+    <button class="open-modal-btn" onclick="openSprintModal()">+ Add Sprint</button>
+    </header>
+
+    <!-- The Modal -->
+    <div id="sprintModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeSprintModal()">&times;</span>
+        <h2>Add New Sprint</h2>
+        <input type="text" id="sprintNameInput" placeholder="Enter sprint name">
+        <button class="create-btn" onclick="submitSprint()">Create Sprint</button>
+      </div>
+    </div>
+
+
+      <!-- Loading Spinner -->
+      <div class="loading-spinner" id="loading-spinner"></div>
+
+       {% for sprint in sprints %}
+<!--        Add a sprint wrapper that will be visible when the tasks sprint is collapsed -->
+        <div class="sprint-container">
+            <input type="color" class="sprint-color-picker"
+                   id="color-picker-{{ sprint.SprintID }}"
+                   value="{{ sprint.SprintColor }}"
+                   onchange="updateSprintColor('{{ sprint.SprintID }}', this.value)">
+
+            <h2 id="sprint-{{ sprint.SprintID }}" class="sprint-heading"
+                style="--sprint-color: {{ sprint.SprintColor }};">
+                <button class="toggle-tasks" onclick="toggleTasks('{{ sprint.SprintID }}')">
+                    <span class="chevron" id="chevron-{{ sprint.SprintID }}">▼</span>
+                </button>
+                <span class="sprint-name"
+                      id="sprint-name-{{ sprint.SprintID }}"
+                      contenteditable="true"
+                      onblur="updateSprintName('{{ sprint.SprintID }}', this.innerText)">
+                    {{ sprint.SprintName }}
+                </span>
+            </h2>
+
+            <!-- Collapsed Wrapper -->
+            <div class="collapsed-wrapper" id="collapsed-wrapper-{{ sprint.SprintID }}" style="display: none;">
+                <div class="task-summary">
+                    <span>{{ sprint.Tasks|length }} Tasks</span>
+                    <span>{{ sprint.SubItems|length }} Subitems</span>
+                </div>
+                <div class="status-summary">
+                    <div class="status-bar">
+                        <div class="status-segment" style="width: 40%; background-color: #4CAF50;"></div>
+                        <div class="status-segment" style="width: 30%; background-color: #FFC107;"></div>
+                        <div class="status-segment" style="width: 30%; background-color: #F44336;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Table -->
+        <table id="taskTable-{{ sprint.SprintID }}" class="task-table"
+               style="--sprint-color: {{ sprint.SprintColor }};">
+            <thead>
+                <tr>
+                    <th><input id="sprintId--{{ sprint.SprintID }}" type="checkbox" class="select-all-checkbox"></th>
+                    <th>Task Name</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Owner(s)</th>
+                    <th>Due Date</th>
+                    <th>Tags</th>
+                    <th>Progress</th>
+                </tr>
+            </thead>
+            <tbody id="taskBody-{{ sprint.SprintID }}">
+                {% for task in sprint.Tasks %}
+                    <tr class="task-row" id="task-{{ task.TaskID }}">
+                        <td><input type="checkbox" class="task-checkbox"></td>
+                        <td class="task-name-cell">
+                            <div class="task-name-content">
+                                <span class="display-text">{{ task.TaskName }}</span>
+                                <input type="text" class="edit-input" value="{{ task.TaskName }}">
+                            </div>
+                            <span class="comment-icon" onclick="openCommentModal('{{ task.TaskID }}')">💬</span>
+                        </td>
+                        <td class="dropdown-Status" data-field="Status" style="background-color: {{ task.StatusColor }}"
+                            data-id="{{ task.TaskID }}">
+                            {{ task.Status }}
+                        </td>
+                        <td class="dropdown-Priority" data-field="Priority" style="background-color: {{ task.PriorityColor }}"
+                            data-id="{{ task.TaskID }}">
+                            {{ task.Priority }}
+                        </td>
+                        <td>
+                            <div class="dropdown-wrapper" data-task-id="{{ task.id }}">
+                                <div class="owners-container" onclick="toggleDropdown('{{ task.id }}')">
+                                    <!-- Placeholder + selected avatars -->
+                                    <div class="selected-friends" id="selected-{{ task.id }}">
+                                        <div class="friend-placeholder" id="placeholder-{{ task.id }}">
+                                          <img src="/static/profile_pics/placeholder.png" alt="No assignee" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="dropdown-content" id="dropdown-{{ task.id }}">
+                                    {% for project in session["shared_projects"] %}
+                                    <div class="friend-card" data-client-id="{{ project.client_id }}" data-client-name="Client {{ project.client_id }}" onclick="selectFriend(event, '{{ task.id }}')">
+                                        <img src="/static/profile_pics/{{ project.client_id }}.png" alt="Profile Picture" />
+                                        <span class="friend-name">Client {{ project.client_id }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </td>
+                        <!-- DATE -->
+                        <td class="due-date-cell" data-id="{{ task.TaskID }}" data-sprint="{{ task.SprintID }}" data-project-id="{{ project_id }}">
+                            {{ task.DueDate }}
+                        </td>
+                        <td>{{ task.Tags }}</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: {{ task.Progress }}%;"></div>
+                            </div>
+                            <span class="progress-text">{{ task.Progress }}%</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <tr id="add-task-row-{{ sprint.SprintID }}">
+                    <td colspan="7">
+                        <input type="text" class="task-input" placeholder="+ Add a task..."
+                   onclick="handleTaskInputClick(event, '{{ sprint.SprintID }}')"
+                   onkeypress="addTask(event, '{{ sprint.SprintID }}')">
+                    </td>
+                </tr>
+
+
+            </tbody>
+        </table>
+    {% endfor %}
+    </div>
+
+      <!-- Delete Confirmation Modal -->
+     <div id="deleteModal" class="delete-modal">
+      <div class="delete-modal-content">
+        <span class="delete-close" onclick="closeDeleteModal()">&times;</span>
+        <p>Are you sure you want to delete this task?</p>
+        <div class="del-modal-actions">
+          <button id="confirmDelete" class="del-confirm-btn" onclick="confirmDelete()">Delete</button>
+          <button id="cancelDelete" class=del-"cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+<!-- Dropdown for Status -->
+<div class="dropdown-menu status-menu" id="dropdown-Status">
+    <div data-value="Ready to Start" style="background-color: #d0ebff; color: #333;">Ready to Start</div>
+    <div data-value="In Progress" class="status-medium" style="background-color: #ffeb3b; color: #333;" >In Progress</div>
+    <div data-value="Waiting for Review" style="background-color: #cfe2ff; color: #333;" >Waiting for Review</div>
+    <div data-value="Updating" style="background-color: #dbeafe; color: #333;">Updating</div>
+    <div data-value="Pending Deploy" style="background-color: #e8e4d3; color: #333;" >Pending Deploy</div>
+    <div data-value="Done" style="background-color: #d1fae5; color: #333;" >Done</div>
+    <div data-value="Future Plan" style="background-color: #baf5e0; color: #333;">Future Plan</div>
+    <div data-value="Working On It" style="background-color: #e9d5ff; color: #333;">Working On It</div>
+    <div data-value="Stuck" style="background-color: #fca5a5; color: #333;" >Stuck</div>
+    <div data-value="In Tests" style="background-color: #d9f99d; color: #333;" >In Tests</div>
+    <div data-value="(blank)" style="background-color: #d1d5db; color: #333;">(blank)</div>
+
+    <!-- Input Field & Button for Custom Status -->
+    <hr>
+    <input type="text" id="custom-status-input" placeholder="Enter custom status">
+    <input type="color" id="custom-status-color" value="#ffffff"> <!-- Color Picker -->
+    <button onclick="addCustomStatus()">Add</button>
+</div>
+
+<!-- Dropdown for Priority -->
+<div class="dropdown-menu priority-menu" id="dropdown-Priority">
+    <div data-value="Critical" style="background-color: #f87171; color: #fff;" >Critical</div>
+    <div data-value="High" style="background-color: #facc15; color: #333;">High</div>
+    <div data-value="Medium" style="background-color: #bfdbfe; color: #333;">Medium</div>
+    <div data-value="Low" style="background-color: #d1fae5; color: #333;">Low</div>
+    <div data-value="Best Effort" style="background-color: #e5e7eb; color: #333;" >Best Effort</div>
+    <div data-value="Missing" style="background-color: #9ca3af; color: #fff;">Missing</div>
+
+    <!-- Input Field & Button for Custom Priority -->
+    <hr>
+    <input type="text" id="custom-priority-input" placeholder="Enter custom priority">
+    <input type="color" id="custom-priority-color" value="#ffffff"> <!-- Color Picker -->
+    <button onclick="addCustomPriority()">Add</button>
+</div>
+
+
+<div id="commentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeCommentModal()">&times;</span>
+        <h2>Comments for Task <span id="modalTaskID"></span></h2>
+
+        <!-- Comment List -->
+        <div id="commentList">
+            {% for comment in comments %}
+            <div class="comment-card">
+                <div class="comment-header">
+                    <b>User {{ comment.UserID }}</b>
+                    <span class="comment-timestamp">{{ comment.CreatedAt }}</span>
+                </div>
+                <div class="comment-content">
+                    {{ comment.Content }}
+                </div>
+
+                <!-- Attachments Section -->
+                {% if comment.Files and comment.Files|length > 0 %}
+                <div class="file-attachments">
+                    <b>Attachments:</b>
+                    {% for file in comment.Files %}
+                    {% set fileExtension = file.split('.')[-1].lower() %}
+
+                    <!-- Display image as thumbnail -->
+                    {% if fileExtension in ['jpg', 'jpeg', 'png', 'gif'] %}
+                    <img src="{{ file }}" alt="Attachment" class="file-thumbnail">
+
+                    <!-- Display link for PDF -->
+                    {% elif fileExtension == 'pdf' %}
+                    <div>
+                        <a href="{{ file }}" target="_blank" class="file-link">📄 View PDF</a>
+                    </div>
+
+                    <!-- Download link for other file types -->
+                    {% else %}
+                    <div>
+                        <a href="{{ file }}" download class="file-link">📁 Download File</a>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="comment-actions">
+                    <button class="action-btn" onclick="editComment('{{ comment.CommentID }}')">✏️ Edit</button>
+                    <button class="action-btn delete-btn" onclick="deleteComment('{{ comment.CommentID }}')">❌ Delete</button>
+                    <span class="reaction" onclick="reactToComment('{{ comment.CommentID }}', '👍')">👍</span>
+                    <span class="reaction" onclick="reactToComment('{{ comment.CommentID }}', '❤️')">❤️</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Add Comment Box -->
+        <textarea id="newComment" placeholder="Write a comment..."></textarea>
+        <input type="file" id="commentFile" />
+        <button onclick="submitComment()">Add Comment</button>
+    </div>
+</div>
+
+<div id="taskContextMenu" class="context-menu">
+      <!-- General Task Options -->
+      <div class="menu-item" onclick="editTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M3 17.25V21h3.75l11.1-11.1-3.75-3.75L3 17.25zm18.71-11.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path>
+          </svg>
+        </span>
+        Edit Task
+      </div>
+      <div class="menu-item" onclick="deleteTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-4l-1-1H10L9 4H5v2h14V4z"></path>
+          </svg>
+        </span>
+        Delete Task
+      </div>
+
+      <!-- Collaboration -->
+      <div class="menu-item" onclick="assignUser()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 12c2.67 0 8 1.33 8 4v2H4v-2c0-2.67 5.33-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+          </svg>
+        </span>
+        Assign User
+      </div>
+      <div class="menu-item" onclick="addComment()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M20 2H4a2 2 0 0 0-2 2v16l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"></path>
+          </svg>
+        </span>
+        Add Comment
+      </div>
+
+      <!-- Advanced Actions -->
+      <div class="menu-item" onclick="viewHistory()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3h2zM12 7h2v6h-4V9h2z"></path>
+          </svg>
+        </span>
+        View History
+      </div>
+      <div class="menu-item" onclick="archiveTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M4 4h16v4H4zm1 6h14v10H5zm7-4h2v2h-2zm-3 0h2v2H9zm6 0h2v2h-2z"></path>
+          </svg>
+        </span>
+        Archive Task
+      </div>
+
+      <!-- Customization -->
+      <div class="menu-item" onclick="changeColor()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
+          </svg>
+        </span>
+        Change Color
+      </div>
+      <div class="menu-item" onclick="tagTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M20 6l-1.4-1.4L10 13.2V18h4.8l8.4-8.4zM5.2 3H2v3.2l11.8 11.8L17 14z"></path>
+          </svg>
+        </span>
+        Add Tag
+      </div>
+
+      <!-- Other Utilities -->
+      <div class="menu-item" onclick="exportTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M5 20h14v2H5zm4-12V3H6v5H2l5 5 5-5z"></path>
+          </svg>
+        </span>
+        Export Task
+      </div>
+      <div class="menu-item" onclick="pinTask()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M15 6l2 2 6-6-2-2zM7 9H4a1 1 0 0 0-1 1v7l5 5v-5h6v-2h-6V9z"></path>
+          </svg>
+        </span>
+        Pin Task
+      </div>
+
+    </div>
+<ul id="sprintContextMenu" class="context-menu">
+  <li onclick="deleteSprint()">Delete Sprint</li>
+</ul>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const sprintContextMenu = document.getElementById('sprintContextMenu');
+  let currentSprintId = null;
+
+  // Add right-click handler to sprint headings
+  document.querySelectorAll('.sprint-heading').forEach(sprintHeader => {
+    sprintHeader.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      currentSprintId = sprintHeader.id.split('-')[1]; // Extract Sprint ID
+
+      // Position the context menu at mouse position
+      sprintContextMenu.style.left = `${e.clientX}px`;
+      sprintContextMenu.style.top = `${e.clientY}px`;
+      sprintContextMenu.style.display = 'block';
+    });
+  });
+
+  // Hide the context menu when clicking elsewhere
+  document.addEventListener('click', () => {
+    sprintContextMenu.style.display = 'none';
+  });
+
+  // Define deleteSprint function
+  window.deleteSprint = () => {
+    if (confirm(`Are you sure you want to delete sprint ${currentSprintId}?`)) {
+      // Replace with actual delete logic (e.g., API call or modal)
+      console.log(`Deleting sprint: ${currentSprintId}`);
+      // Example AJAX:
+      fetch(`/delete_sprint/${currentSprintId}`, {
+          method: 'DELETE',
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              // Remove the sprint DOM element
+              const sprintContainer = document.getElementById(`sprint-${data.deletedSprintId}`);
+              if (sprintContainer) {
+                sprintContainer.parentElement.remove(); // removes the whole sprint block
+              }
+            } else {
+              alert(data.message || 'Failed to delete sprint.');
+            }
+          })
+          .catch(err => {
+            console.error('Delete error:', err);
+            alert('An error occurred while deleting the sprint.');
+          });
+    }
+  };
+});
+
+</script>
+
+<!--
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.getElementById("context-menu-container");
+
+  if (!container) return;
+
+  fetch("taskContextMenu.html")
+    .then(response => response.text())
+    .then(html => {
+      container.innerHTML = html;
+
+      // Now it's safe to access #taskContextMenu
+      const contextMenu = document.getElementById("taskContextMenu");
+      if (!contextMenu) {
+        console.warn("taskContextMenu not found");
+        return;
+      }
+
+      document.addEventListener("contextmenu", e => {
+        e.preventDefault();
+
+        const mouseX = e.pageX;
+        const mouseY = e.pageY;
+
+        contextMenu.style.left = `${mouseX}px`;
+        contextMenu.style.top = `${mouseY}px`;
+        contextMenu.style.display = "block";
+      });
+
+      document.addEventListener("click", e => {
+        if (!e.target.closest("#taskContextMenu")) {
+          contextMenu.style.display = "none";
+        }
+      });
+
+      // Dummy functions (attach your logic here)
+      window.editTask = () => alert("Edit Task clicked");
+      window.deleteTask = () => alert("Delete Task clicked");
+      window.assignUser = () => alert("Assign User clicked");
+      window.addComment = () => alert("Add Comment clicked");
+      window.viewHistory = () => alert("View History clicked");
+      window.archiveTask = () => alert("Archive Task clicked");
+      window.changeColor = () => alert("Change Color clicked");
+      window.tagTask = () => alert("Add Tag clicked");
+      window.exportTask = () => alert("Export Task clicked");
+      window.pinTask = () => alert("Pin Task clicked");
+    })
+    .catch(err => console.error("Failed to load context menu:", err));
+});
+
+</script>
+-->
+
+    {% include 'popup.html' %}
+
+
+<!-- Floating Chat Button -->
+<div id="chat-toggle" onclick="toggleChat()">💬 Chat</div>
+
+<!-- Chat Window -->
+<div id="chat-window">
+  <div id="chat-header">Team Chat <span onclick="toggleChat()">✖</span></div>
+  <div id="chat-messages"></div>
+  <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="sendMessage(event)">
+</div>
+
+    <script>
+        socket.on("connect", () => {
+            const projectId = document.body.getAttribute('data-project-id'); // safer
+            if (projectId && projectId !== "None") {
+                console.log("🧩 Emitting join_project...");
+                socket.emit("join_project", { project_id: projectId });
+            }
+        });
+
+        socket.on("joined_room", (data) => {
+            console.log("✅ Joined room successfully:", data.room);
+        });
+
+        function sendMessage(event) {
+            if (event && event.key !== "Enter") return;
+
+            const message = messageInput.value.trim();
+            if (message !== "") {
+                socket.emit("team_update", {
+                    message: message,
+                    project_id: projectId
+                });
+                messageInput.value = "";
+            }
+        }
+
+        messageInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        messageInput.addEventListener("input", () => {
+            socket.emit("typing", { project_id: projectId });
+        });
+
+        socket.on("team_update", data => {
+            const div = document.createElement("div");
+            div.classList.add("chat-message");
+            div.innerHTML = `<strong>${data.sender}:</strong> ${data.message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        });
+
+        socket.on("user_typing", data => {
+            typingIndicator.textContent = `${data.username} is typing...`;
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingIndicator.textContent = "";
+            }, 1500);
+        });
+
+        socket.on("task_updated", data => {
+            const defaultMessage = tasks.querySelector("em");
+            if (defaultMessage) {
+                defaultMessage.remove();
+            }
+
+            const taskDiv = document.createElement("div");
+            taskDiv.classList.add("task");
+            taskDiv.innerHTML = `<strong>Task Updated:</strong> ${data.updated_task.TaskName}<br>🔁 ${data.changes.join(", ")}`;
+            tasks.prepend(taskDiv);
+        });
+
+        socket.on("task_deleted", data => {
+            const defaultMessage = tasks.querySelector("em");
+            if (defaultMessage) {
+                defaultMessage.remove();
+            }
+
+            const taskDiv = document.createElement("div");
+            taskDiv.classList.add("task");
+            taskDiv.innerHTML = `<strong>Task Deleted:</strong> ID ${data.task_id}`;
+            tasks.prepend(taskDiv);
+        });
+    </script>
+
+        <!-- Placeholder for Pop-Up -->
+<!--    <div id="popup-container"></div>-->
+
+
+ <!-- Include the Socket.IO client library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<!--ADD TASK-->
+<script>
+
+function handleTaskInputClick(event, sprintId) {
+    if (event.target.value.trim() === '') {  // Ensure no duplicate task is added if the user is typing
+        event.target.value = "New Task"; // Default name if empty
+        addTask({ key: 'Enter', target: event }, sprintId); // Simulate "Enter" key press
+    }
+}
+    async function addTask(event, sprintId) {
+  if (event.key === 'Enter' && event.target.value.trim() !== '') {
+    const taskName = event.target.value.trim();
+    const inputField = event.target;
+
+
+    // Default task values
+    const newTask = {
+      TaskName: taskName,
+      Status: "Ready to start",
+      Priority: "Medium",
+      Owners: "Unassigned",
+      DueDate: "--",
+      Tags: "--",
+      SprintID: sprintId // Ensure task is linked to the sprint
+    };
+
+    try {
+      const response = await fetch("/add_task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTask)
+      });
+
+      const result = await response.json();
+      if (result.status === "success") {
+        const task = result.newTask; // Backend should return the full task with TaskID
+
+        // Create new task row
+        const newRow = document.createElement("tr");
+        newRow.classList.add("task-row");
+        newRow.id = `task-${task.TaskID}`;
+        newRow.innerHTML = `
+          <td><input type="checkbox" class="task-checkbox"></td>
+          <td class="task-name-cell" data-task-id="${task.TaskID}">
+            <div class="task-name-content">
+              <span class="display-text">${task.TaskName}</span>
+              <input type="text" class="edit-input">
+            </div>
+            <span class="comment-icon">💬</span>
+          </td>
+          <td class="dropdown-Status" data-field="Status" style="background-color: ${task.StatusColor}"
+              data-id="${task.TaskID}" onclick="toggleStatusDropdown(event)">
+            ${task.Status}
+          </td>
+          <td class="dropdown-Priority" data-field="Priority" style="background-color: ${task.PriorityColor}"
+              data-id="${task.TaskID}">
+            ${task.Priority}
+          </td>
+          <td>${task.Owners}</td>
+          <td>${task.DueDate}</td>
+          <td>${task.Tags}</td>
+          <td>
+            <div class="progress-bar">
+              <div class="progress" style="width: ${task.Progress}%;"></div>
+            </div>
+            ${task.Progress}%
+          </td>
+        `;
+
+        // Append to the correct Sprint task table
+        const taskBody = document.getElementById(`taskBody-${sprintId}`);
+        if (taskBody) {
+          taskBody.insertBefore(newRow, document.getElementById(`add-task-row-${sprintId}`));
+        } else {
+          console.error("Task body not found for sprint:", sprintId);
+        }
+
+        // Clear the input field
+        inputField.value = "";
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
+  }
+}
+  </script>
+
+<!--  SOCKET  -->
+<script>
+// ---------------------- SOCKET LISTENER ---------------------- \\
+socket.on("task_updated", function (data) {
+    console.log("🔥 Real-time Update Received:", data);
+
+    if (!data.updated_task) {
+        console.error("❌ Error: No updated task received.");
+        return;
+    }
+
+    const { updated_task, updated_by, sprint_name } = data;
+    const taskRow = document.getElementById(`task-${updated_task.TaskID}`);
+
+    if (taskRow) {
+        // Update existing task in the DOM
+        const displayText = taskRow.querySelector(".display-text");
+        if (displayText) displayText.textContent = updated_task.TaskName;
+
+        const statusDropdown = taskRow.querySelector(".dropdown-Status");
+        if (statusDropdown) {
+            statusDropdown.textContent = updated_task.Status;
+            statusDropdown.style.backgroundColor = updated_task.StatusColor || "#d1d5db";
+        }
+
+        const priorityDropdown = taskRow.querySelector(".dropdown-Priority");
+        if (priorityDropdown) {
+            priorityDropdown.textContent = updated_task.Priority;
+            priorityDropdown.style.backgroundColor = updated_task.PriorityColor || "#d1d5db";
+        }
+        const progressBar = taskRow.querySelector(".progress-bar .progress");
+        if (progressBar) {
+            progressBar.style.width = `${updated_task.Progress}%`;
+        }
+
+        const progressText = taskRow.querySelector(".progress-text");
+        if (progressText) {
+            progressText.textContent = `${updated_task.Progress}%`;
+        }
+
+
+
+        const visualTaskNumber = getVisualTaskNumber(updated_task.TaskID, updated_task.SprintID);
+        showActionPopup(`${updated_by} updated Task #${visualTaskNumber} in ${sprint_name}`);
+
+    } else {
+        console.warn("⚠️ Task row not found in DOM:", updated_task.TaskID);
+        // (Optional) You could re-fetch tasks here if necessary
+    }
+});
+
+// ---------------------- FUNCTION TO UPDATE TASK ---------------------- \\
+async function updateTask(sprintId, taskId, updateData) {
+    updateData["ID"] = taskId;
+    updateData["SprintID"] = sprintId;
+    updateData["project_id"] = document.body.getAttribute('data-project-id');
+
+    try {
+        const response = await fetch("/update_task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData)
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            console.log("✅ UpdateTask Success: Waiting for real-time update...");
+            // Do NOT manually update UI here
+        } else {
+            console.error("❌ Failed to update task:", result.message);
+        }
+    } catch (error) {
+        console.error("⚠️ Error updating task:", error);
+    }
+}
+
+</script>
+
+<script>
+    // --- Task Deleted ---
+    socket.on("delete_task", (data) => {
+        console.log("🗑️ Task deleted:", data.task_id);
+
+        const { task_id, deleted_by, sprint_name } = data;
+        const taskRow = document.getElementById(`task-${task_id}`);
+        if (taskRow) {
+            taskRow.remove();
+        }
+        visualTaskNumber = getVisualTaskNumber(updated_task.TaskID, updated_task.SprintID);
+
+        showActionPopup(`${deleted_by} deleted Task #${visualTaskNumber} in ${sprint_name}`);
+    });
+
+    // --- Task Added ---
+    socket.on("task_added", (data) => {
+        console.log("➕ New Task added:", data.new_task);
+
+        const { new_task, added_by, sprintID, sprint_name } = data;
+        // (You would create a new row dynamically here)
+        // Example:
+        // createTaskRow(new_task);
+         // Default task values
+        const newTask = {
+          TaskName: taskName,
+          Status: "Ready to start",
+          Priority: "Medium",
+          Owners: "Unassigned",
+          DueDate: "--",
+          Tags: "--",
+          SprintID: sprintId // Ensure task is linked to the sprint
+        };
+
+        // Create new task row
+        const newRow = document.createElement("tr");
+        newRow.classList.add("task-row");
+        newRow.id = `task-${task.TaskID}`;
+        newRow.innerHTML = `
+          <td><input type="checkbox" class="task-checkbox"></td>
+          <td class="task-name-cell" data-task-id="${task.TaskID}">
+            <div class="task-name-content">
+              <span class="display-text">${task.TaskName}</span>
+              <input type="text" class="edit-input">
+            </div>
+            <span class="comment-icon">💬</span>
+          </td>
+          <td class="dropdown-Status" data-field="Status" style="background-color: ${task.StatusColor}"
+              data-id="${task.TaskID}" onclick="toggleStatusDropdown(event)">
+            ${task.Status}
+          </td>
+          <td class="dropdown-Priority" data-field="Priority" style="background-color: ${task.PriorityColor}"
+              data-id="${task.TaskID}">
+            ${task.Priority}
+          </td>
+          <td>${task.Owners}</td>
+          <td>${task.DueDate}</td>
+          <td>${task.Tags}</td>
+          <td>
+            <div class="progress-bar">
+              <div class="progress" style="width: ${task.Progress}%;"></div>
+            </div>
+            ${task.Progress}%
+          </td>
+        `;
+        // Append to the correct Sprint task table
+        const taskBody = document.getElementById(`taskBody-${sprintId}`);
+        if (taskBody) {
+          taskBody.insertBefore(newRow, document.getElementById(`add-task-row-${sprintId}`));
+        } else {
+          console.error("Task body not found for sprint:", sprintId);
+        }
+        showActionPopup(`${added_by} added Task "${new_task.TaskName}" in ${sprint_name}`);
+    });
+
+
+    function getVisualTaskNumber(realTaskID, sprintID) {
+        const taskBody = document.getElementById(`taskBody-${sprintID}`);
+        if (!taskBody) return "?"; // If no sprint found
+
+        const taskRows = taskBody.querySelectorAll(".task-row");
+        for (let i = 0; i < taskRows.length; i++) {
+            const row = taskRows[i];
+            const currentTaskID = row.id.replace("task-", "");
+            if (parseInt(currentTaskID) === parseInt(realTaskID)) {
+                return i + 1; // visual number is 1-based
+            }
+        }
+        return "?"; // if task not found
+    }
+
+    // --- Popup Visual Effect ---
+    function showActionPopup(message) {
+        let popup = document.createElement("div");
+        popup.className = "action-popup";
+        popup.textContent = message;
+        document.body.appendChild(popup);
+
+        setTimeout(() => {
+            popup.classList.add("fadeout");
+            setTimeout(() => popup.remove(), 1000);
+        }, 2000); // show for 2 seconds
+    }
+
+    // Small CSS you need:
+    const style = document.createElement('style');
+    style.innerHTML = `
+    .action-popup {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4ade80;
+        padding: 10px 20px;
+        border-radius: 8px;
+        color: #000;
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        z-index: 9999;
+        transition: opacity 1s ease;
+    }
+    .fadeout {
+        opacity: 0;
+    }
+    `;
+    document.head.appendChild(style);
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let debounceTimer;
+
+    // ---------------------- REAL-TIME TASK NAME UPDATE ---------------------- \\
+    document.querySelectorAll(".task-name-cell").forEach(cell => {
+        const input = cell.querySelector(".edit-input");
+        const displayText = cell.querySelector(".display-text");
+
+        // Click display text to show input
+        displayText.addEventListener("click", function () {
+            displayText.style.display = "none";
+            input.style.display = "block";
+            input.value = displayText.textContent.trim();
+            input.focus();
+        });
+
+        // Mark input as active while typing
+        input.addEventListener("focus", function () {
+            input.dataset.active = "true";
+        });
+
+        input.addEventListener("blur", function () {
+            input.dataset.active = "false";
+            setTimeout(() => {
+                if (input.dataset.active === "false") {
+                    input.style.display = "none";
+                    displayText.textContent = input.value.trim() || "Untitled Task";
+                    displayText.style.display = "inline";
+                }
+            }, 100);
+        });
+
+        // Update task on Enter key
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                const taskRow = this.closest(".task-row");
+                const taskId = taskRow.id.replace("task-", "");
+                const sprintId = taskRow.closest("tbody").id.replace("taskBody-", "");
+                const newTaskName = this.value.trim();
+                if (newTaskName) {
+                    updateTask(sprintId, taskId, { TaskName: newTaskName });
+                }
+                this.style.display = "none";
+                displayText.textContent = newTaskName || "Untitled Task";
+                displayText.style.display = "inline";
+            }
+        });
+
+        // Real-time task name update with debounce
+        input.addEventListener("input", function () {
+            clearTimeout(debounceTimer);
+            const taskRow = this.closest(".task-row");
+            const taskId = taskRow.id.replace("task-", "");
+            const sprintId = taskRow.closest("tbody").id.replace("taskBody-", "");
+            const newTaskName = this.value.trim();
+            if (newTaskName) {
+                debounceTimer = setTimeout(() => {
+                    updateTask(sprintId, taskId, { TaskName: newTaskName });
+                }, 500);
+            }
+        });
+    });
+
+    // Close input if clicking outside
+    document.addEventListener("click", function (event) {
+        document.querySelectorAll(".edit-input").forEach(input => {
+            if (!input.contains(event.target) && !input.closest(".task-name-cell").contains(event.target)) {
+                input.style.display = "none";
+                const displayText = input.closest(".task-name-cell").querySelector(".display-text");
+                displayText.textContent = input.value.trim() || "Untitled Task";
+                displayText.style.display = "inline";
+            }
+        });
+    });
+
+    // ---------------------- DROP MENU FUNCTIONALITY ---------------------- \\
+    document.querySelectorAll('.dropdown-Status, .dropdown-Priority').forEach(element => {
+        element.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const field = this.dataset.field;
+            const taskId = this.dataset.id;
+            const menu = document.getElementById(`dropdown-${field}`);
+
+            // Close all other dropdown menus
+            document.querySelectorAll('.dropdown-menu').forEach(otherMenu => {
+                if (otherMenu !== menu) {
+                    otherMenu.classList.remove('show');
+                    otherMenu.classList.add('hide');
+                }
+            });
+
+            // Toggle dropdown visibility
+            menu.classList.toggle('show');
+            menu.classList.toggle('hide');
+
+            // Position the dropdown relative to the trigger element
+            const rect = this.getBoundingClientRect();
+            menu.style.left = `${rect.left}px`;
+            menu.style.top = `${rect.bottom + window.scrollY}px`;
+            menu.setAttribute('data-task-id', taskId);
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function (event) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (!menu.contains(event.target)) {
+                menu.classList.remove('show');
+                menu.classList.add('hide');
+            }
+        });
+    });
+
+    // ---------------------- HANDLE DROPDOWN OPTION SELECTION ---------------------- \\
+    document.querySelectorAll('.dropdown-menu div').forEach(option => {
+        option.addEventListener('click', function () {
+            const menu = this.parentElement;
+            const field = menu.id.replace('dropdown-', '');
+            const selectedValue = this.getAttribute('data-value');
+            const taskId = menu.getAttribute('data-task-id');
+            const element = document.querySelector(`[data-field="${field}"][data-id="${taskId}"]`);
+            const sprintId = element.closest("tbody").id.replace("taskBody-", "");
+
+            // If the "Custom" option is selected, open the custom modal
+            if (selectedValue === "Custom") {
+                currentCustomField = field;
+                currentTaskElement = element;
+                currentTaskId = taskId;
+                currentSprintId = sprintId;
+                openCustomLabelModal(field);
+            } else {
+                updateField(sprintId, taskId, field, selectedValue, element);
+            }
+        });
+    });
+});
+
+// ---------------------- GLOBAL VARIABLES for Custom Modal ---------------------- \\
+var currentCustomField = null;
+var currentTaskElement = null;
+var currentSprintId = null;
+var currentTaskId = null;
+
+
+// ---------------------- FUNCTION TO UPDATE STATUS OR PRIORITY ---------------------- \\
+function updateField(sprintId, taskId, field, value, element) {
+    const STATUS_COLORS = {
+        "Ready to Start": "#d0ebff",
+        "In Progress": "#facc15",
+        "Waiting for Review": "#cfe2ff",
+        "Updating": "#dbeafe",
+        "Pending Deploy": "#e8e4d3",
+        "Done": "#d1fae5",
+        "Future Plan": "#baf5e0",
+        "Working On It": "#e9d5ff",
+        "Stuck": "#fca5a5",
+        "In Tests": "#d9f99d",
+        "": "#d1d5db"
+    };
+
+    const PRIORITY_COLORS = {
+        "Critical": "#f87171",
+        "High": "#facc15",
+        "Medium": "#bfdbfe",
+        "Low": "#d1fae5",
+        "Best Effort": "#e5e7eb",
+        "Missing": "#9ca3af"
+    };
+
+    // Retrieve stored custom colors or create an empty object
+    const customColors = JSON.parse(localStorage.getItem("customColors")) || {};
+
+    let colors = field === "Priority" ? PRIORITY_COLORS : STATUS_COLORS;
+    let newColor = colors[value] || customColors[value];
+
+    // If value is custom and no color exists, generate a random pastel color
+    if (!newColor) {
+        newColor = generateRandomPastelColor();
+        customColors[value] = newColor;
+        localStorage.setItem("customColors", JSON.stringify(customColors)); // Store new custom color
+    }
+
+    // Update UI immediately
+    element.style.backgroundColor = newColor;
+    element.style.color = "#000"; // Ensure inner text is black
+    element.innerText = value;
+
+    // Send update request to backend with background color
+    updateTask(sprintId, taskId, { [field]: value, [`${field}Color`]: newColor });
+
+    // Close dropdown after selection
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('show');
+        menu.classList.add('hide');
+    });
+}
+
+// ---------------------- FUNCTION TO GENERATE RANDOM PASTEL COLORS ---------------------- \\
+function generateRandomPastelColor() {
+    const hue = Math.floor(Math.random() * 360);
+    const pastel = `hsl(${hue}, 80%, 85%)`; // Soft pastel colors
+    return pastel;
+}
+
+// ---------------------- FUNCTION TO SEND UPDATES TO SERVER ---------------------- \\
+async function updateTask(sprintId, taskId, updateData) {
+    updateData["ID"] = taskId;
+    updateData["SprintID"] = sprintId;
+    updateData["project_id"] = document.body.getAttribute('data-project-id');
+
+    try {
+        const response = await fetch("/update_task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData)
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            console.log("Task updated:", result.updated_task);
+
+            // Ensure the UI updates with correct colors from the backend response
+            const updatedTask = result.updated_task;
+            const element = document.querySelector(`[data-field="${Object.keys(updateData)[0]}"][data-id="${taskId}"]`);
+            if (element) {
+                const field = Object.keys(updateData)[0];
+                const newColor = updatedTask[`${field}Color`] || "#d1d5db";
+                element.style.backgroundColor = newColor;
+                element.style.color = "#000"; // Ensure inner text remains black
+            }
+        } else {
+            console.error("Failed to update task:", result.message);
+        }
+    } catch (error) {
+        console.error("Error updating task:", error);
+    }
+}
+
+
+// ---------------------- CUSTOM LABEL MODAL FUNCTIONS ---------------------- \\
+
+
+function addCustomStatus() {
+    let input = document.getElementById("custom-status-input");
+    let colorPicker = document.getElementById("custom-status-color");
+    let newStatus = input.value.trim();
+    let newColor = colorPicker.value;
+
+    if (newStatus) {
+        let statusMenu = document.getElementById("dropdown-Status");
+
+        // Check if the status already exists
+        if ([...statusMenu.children].some(div => div.innerText === newStatus)) {
+            alert("Status already exists!");
+            return;
+        }
+
+        let newDiv = document.createElement("div");
+        newDiv.innerText = newStatus;
+        newDiv.setAttribute("data-value", newStatus);
+        newDiv.style.backgroundColor = newColor;
+        newDiv.style.color = "#333";
+        newDiv.onclick = function() {
+            selectStatus(newStatus);
+        };
+
+        statusMenu.insertAfter(newDiv, statusMenu.lastElementChild.previousElementSibling);
+
+        input.value = ""; // Clear input field
+    }
+}
+
+function addCustomPriority() {
+    let input = document.getElementById("custom-priority-input");
+    let colorPicker = document.getElementById("custom-priority-color");
+    let newPriority = input.value.trim();
+    let newColor = colorPicker.value;
+
+    if (newPriority) {
+        let priorityMenu = document.getElementById("dropdown-Priority");
+
+        // Check if the priority already exists
+        if ([...priorityMenu.children].some(div => div.innerText === newPriority)) {
+            alert("Priority already exists!");
+            return;
+        }
+
+        let newDiv = document.createElement("div");
+        newDiv.innerText = newPriority;
+        newDiv.setAttribute("data-value", newPriority);
+        newDiv.style.backgroundColor = newColor;
+        newDiv.style.color = "#333";
+        newDiv.onclick = function() {
+            selectPriority(newPriority);
+        };
+
+        priorityMenu.insertBefore(newDiv, priorityMenu.lastElementChild.previousElementSibling);
+
+        input.value = ""; // Clear input field
+    }
+}
+
+
+
+// ---------------------- CUSTOM LABEL MODAL FUNCTIONS ---------------------- \\
+
+
+
+
+function openCustomLabelModal(field) {
+    currentCustomField = field;
+    document.getElementById("customField").innerText = field;
+    document.getElementById("customLabelName").value = "";
+    document.getElementById("customLabelColor").value = "#d1d5db";
+    document.getElementById("customLabelModal").classList.remove("hide");
+    document.getElementById("customLabelModal").classList.add("show");
+}
+
+function closeCustomLabelModal() {
+    document.getElementById("customLabelModal").classList.remove("show");
+    document.getElementById("customLabelModal").classList.add("hide");
+}
+
+function saveCustomLabel() {
+    const labelName = document.getElementById("customLabelName").value.trim();
+    const labelColor = document.getElementById("customLabelColor").value;
+    if (!labelName) {
+        alert("Please enter a label name.");
+        return;
+    }
+    if (currentTaskElement) {
+        currentTaskElement.style.backgroundColor = labelColor;
+        currentTaskElement.innerText = labelName;
+        updateTask(currentSprintId, currentTaskId, { [currentCustomField]: labelName, BC: labelColor });
+    }
+    closeCustomLabelModal();
+}
+</script>
+
+<!--  X X X
+<script>
+    import { attachTaskInputListeners } from './static/JS/Tasks/Add_Task.js';
+
+document.addEventListener("DOMContentLoaded", () => {
+    attachTaskInputListeners();
+});
+</script>
+-->
+<!-- Comment  -->
+<script>
+function openCommentModal(taskID) {
+    document.getElementById("modalTaskID").innerText = taskID;
+    document.getElementById("commentModal").style.display = "block";
+    fetchComments(taskID);
+}
+
+
+
+function closeCommentModal() {
+    document.getElementById("commentModal").style.display = "none";
+}
+
+function fetchComments(taskID) {
+    fetch(`/get_comments/${taskID}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Fetched comments:", data);
+
+            let commentList = document.getElementById("commentList");
+            commentList.innerHTML = "";
+
+            if (!Array.isArray(data) || data.length === 0) {  // Check if response is an array
+                commentList.innerHTML = "<p>No comments found.</p>";
+                return;
+            }
+
+            data.forEach(comment => {  // Iterate over list instead of `data.comments`
+                let commentDiv = document.createElement("div");
+                commentDiv.classList.add("comment-card");
+
+                commentDiv.innerHTML = `
+                    <div class="comment-header">
+                        <b>User ${comment.UserID}</b>
+                        <span class="comment-timestamp">${comment.CreatedAt}</span>
+                    </div>
+                    <div class="comment-content">
+                        ${comment.Content}
+                    </div>
+                `;
+
+                commentList.appendChild(commentDiv);
+            });
+        })
+        .catch(error => {
+            console.error("Error fetching comments:", error);
+        });
+}
+
+
+
+
+function submitComment() {
+    let taskID = document.getElementById("modalTaskID").innerText;
+    let commentText = document.getElementById("newComment").value;
+    let fileInput = document.getElementById("commentFile").files[0];
+
+    let formData = new FormData();
+    formData.append("taskID", taskID);
+    formData.append("commentText", commentText);
+    if (fileInput) formData.append("file", fileInput);
+
+    fetch("/add_comment", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert("Failed to add comment");
+            return;
+        }
+
+        // Clear input fields
+        document.getElementById("newComment").value = "";
+        document.getElementById("commentFile").value = "";
+
+        // Append the new comment to the UI without refreshing
+        let commentList = document.getElementById("commentList");
+        let commentDiv = document.createElement("div");
+        commentDiv.classList.add("comment-card");
+        commentDiv.innerHTML = `
+            <div class="comment-header">
+                <b>User ${data.UserID}</b>
+                <span class="comment-timestamp">${data.CreatedAt}</span>
+            </div>
+            <div class="comment-content">${data.Content}</div>
+        `;
+
+        // Handle file display
+        if (data.Files.length > 0) {
+            let filesDiv = document.createElement("div");
+            filesDiv.classList.add("file-attachments");
+            filesDiv.innerHTML = "<b>Attachments:</b>";
+
+            data.Files.forEach(file => {
+                let fileExtension = file.split('.').pop().toLowerCase();
+                let fileElement;
+
+                if (["jpg", "jpeg", "png", "gif"].includes(fileExtension)) {
+                    fileElement = `<img src="${file}" alt="Attachment" class="file-thumbnail">`;
+                } else if (fileExtension === "pdf") {
+                    fileElement = `<div><a href="${file}" target="_blank" class="file-link">📄 View PDF</a></div>`;
+                } else {
+                    fileElement = `<div><a href="${file}" download class="file-link">📁 Download File</a></div>`;
+                }
+
+                filesDiv.innerHTML += fileElement;
+            });
+
+            commentDiv.appendChild(filesDiv);
+        }
+
+        commentList.appendChild(commentDiv);
+    })
+    .catch(error => console.error("Error submitting comment:", error));
+}
+
+
+function editComment(commentID) {
+    let newCommentText = prompt("Edit your comment:");
+    if (!newCommentText) return;
+
+    fetch("/edit_comment", {
+        method: "POST",
+        body: JSON.stringify({ commentID, newCommentText }),
+        headers: { "Content-Type": "application/json" }
+    }).then(() => fetchComments(document.getElementById("modalTaskID").innerText));
+}
+
+function deleteComment(commentID) {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+
+    fetch("/delete_comment", {
+        method: "POST",
+        body: JSON.stringify({ commentID }),
+        headers: { "Content-Type": "application/json" }
+    }).then(() => fetchComments(document.getElementById("modalTaskID").innerText));
+}
+
+function reactToComment(commentID, reaction) {
+    fetch("/add_reaction", {
+        method: "POST",
+        body: JSON.stringify({ commentID, reaction }),
+        headers: { "Content-Type": "application/json" }
+    }).then(() => fetchComments(document.getElementById("modalTaskID").innerText));
+}
+
+</script>
+
+<!-- Global Task Menu Container -->
+<div id="task-menu"></div>
+<script>
+// Function to update the global task menu
+function updateTaskMenu() {
+  const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+  const totalCount = selectedCheckboxes.length;
+  const menu = document.getElementById("task-menu");
+
+  if (totalCount > 0) {
+    let dotsHTML = '<div class="sprint-dots">';
+
+    selectedCheckboxes.forEach((checkbox) => {
+      const taskRow = checkbox.closest("tr");
+      const table = checkbox.closest("table");
+
+      if (table && table.id) {
+        const sprintId = table.id.split('-')[1];
+
+        // Get sprint color
+        const colorPicker = document.getElementById('color-picker-' + sprintId);
+        const sprintColor = colorPicker ? colorPicker.value : "#ffffff";
+
+        // Add a dot for each selected task
+        dotsHTML += `<span class="dot" style="background: ${sprintColor};"></span>`;
+      }
+    });
+
+    dotsHTML += '</div>';
+
+    // Build the menu content
+    menu.innerHTML = `
+      <div class="task-count-box">${totalCount}</div>
+      ${dotsHTML}
+      <div class="task-menu-actions">
+         <button onclick="editSelectedTasks()">Edit</button>
+         <button onclick="deleteSelectedTasks()">Delete</button>
+         <button onclick="moveSelectedTasks()">Move</button>
+      </div>
+    `;
+
+    // Positioning for mobile
+    if (window.innerWidth <= 768) {
+      const firstCheckbox = selectedCheckboxes[0];
+      const rect = firstCheckbox.getBoundingClientRect();
+      menu.style.top = (rect.bottom + window.scrollY + 5) + "px";
+      menu.style.left = (rect.left + window.scrollX) + "px";
+    } else {
+      menu.style.position = "fixed";
+    }
+
+    menu.style.display = "flex";
+  } else {
+    menu.style.display = "none";
+  }
+}
+
+// Listen for checkbox changes to update the menu
+document.addEventListener("change", function (e) {
+  if (e.target.classList.contains("select-all-checkbox")) {
+    const sprintId = e.target.id.split('--')[1];
+    const checkboxes = document.querySelectorAll(`#taskTable-${sprintId} .task-checkbox`);
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = e.target.checked;
+      checkbox.closest(".task-row").classList.toggle("selected", e.target.checked);
+    });
+    updateTaskMenu();
+  } else if (e.target.classList.contains("task-checkbox")) {
+    e.target.closest(".task-row").classList.toggle("selected", e.target.checked);
+    updateTaskMenu();
+  }
+});
+
+// Sample action functions
+function editSelectedTasks() { alert("Edit tasks coming soon."); }
+function deleteSelectedTasks() { alert("Delete tasks coming soon."); }
+function moveSelectedTasks() { alert("Move tasks coming soon."); }
+</script>
+
+<!--  POP OUT  -->
+<script>
+    function sendFriendRequest() {
+        let email = document.getElementById("friend-email").value;
+
+        fetch("/send_friend_request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiver_email: email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success || data.error);
+            closeFriendRequestPopup();
+        });
+    }
+</script>
+
+
+<!--  Collapse  -->
+<script>
+    function toggleTasks(sprintID) {
+    const taskTable = document.getElementById(`taskTable-${sprintID}`);
+    const chevron = document.getElementById(`chevron-${sprintID}`);
+    const collapsedWrapper = document.getElementById(`collapsed-wrapper-${sprintID}`);
+
+    if (taskTable.style.display === "none") {
+        taskTable.style.display = "table";
+        collapsedWrapper.style.display = "none";
+        chevron.classList.remove('collapsed');
+    } else {
+        taskTable.style.display = "none";
+        collapsedWrapper.style.display = "flex";
+        chevron.classList.add('collapsed');
+    }
+}
+
+
+</script>
+<!--  Sprint   -->
+<script>
+// Toggle Task Visibility
+function toggleTasks(sprintID) {
+    const taskTable = document.getElementById(`taskTable-${sprintID}`);
+    const chevron = document.getElementById(`chevron-${sprintID}`);
+
+    if (taskTable.style.display === "none") {
+        taskTable.style.display = "table";
+        chevron.classList.remove('collapsed');
+    } else {
+        taskTable.style.display = "none";
+        chevron.classList.add('collapsed');
+    }
+}
+
+// Update Sprint Name
+function updateSprintName(sprintId, newName) {
+    // Clean up the text before sending
+    newName = newName.trim();
+
+    // Send updated name to the server
+    fetch('/update_sprint', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            SprintID: sprintId,
+            SprintName: newName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.length > 0) {
+            console.log('Sprint name updated:', data);
+            // Update the displayed name (no chevron)
+            document.getElementById(`sprint-name-${sprintId}`).innerText = newName;
+        }
+    })
+    .catch(error => console.error('Error updating sprint name:', error));
+}
+
+// Update Sprint Color
+function updateSprintColor(sprintId, color) {
+    // Update UI colors immediately
+    document.getElementById(`sprint-${sprintId}`).style.setProperty('--sprint-color', color);
+    document.getElementById(`taskTable-${sprintId}`).style.setProperty('--sprint-color', color);
+    document.getElementById(`color-picker-${sprintId}`).value = color;
+
+    // Send update request
+    fetch('/update_sprint', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            SprintID: sprintId,
+            SprintColor: color
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.length > 0) {
+            console.log(`Sprint ${sprintId} color updated successfully!`);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+
+
+</script>
+
+<!-- ADD SPRINT -->
+<script>
+    window.openSprintModal = function() {
+      const modal = document.getElementById('sprintModal');
+      modal.style.display = 'block';
+      requestAnimationFrame(() => {
+        modal.classList.remove('closing');
+        modal.classList.add('show');
+      });
+    };
+
+    window.closeSprintModal = function() {
+      const modal = document.getElementById('sprintModal');
+      modal.classList.add('closing');
+      modal.classList.remove('show');
+      setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+      }, 600); // must match CSS animation duration
+    };
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === "Escape") {
+        closeSprintModal();
+      }
+    });
+
+    // ENTER to submit sprint from input
+    document.addEventListener('DOMContentLoaded', () => {
+      const sprintInput = document.getElementById('sprintNameInput');
+      if (sprintInput) {
+        sprintInput.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            submitSprint();
+          }
+        });
+      }
+    });
+    window.submitSprint = function () {
+      const sprintName = document.getElementById('sprintNameInput').value.trim();
+      if (!sprintName) {
+        return alert("Sprint name cannot be empty.");
+      }
+
+      let existingColors = Array.from(document.querySelectorAll('.sprint-heading')).map(el =>
+        el.style.getPropertyValue('--sprint-color')
+      );
+      let sprintColor;
+      do {
+        sprintColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+      } while (existingColors.includes(sprintColor));
+
+      const projectId = document.body.getAttribute('data-project-id');
+
+      fetch('/add_sprint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          SprintName: sprintName,
+          SprintColor: sprintColor,
+          ProjectID: projectId
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            closeSprintModal();
+            addSprintToDOM(data.sprint);
+          } else {
+            alert("Failed to add sprint: " + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error adding sprint:', error);
+          alert("Error adding sprint. Please try again.");
+        });
+    };
+
+    window.addSprintToDOM = function(sprint) {
+      const container = document.createElement('div');
+      container.classList.add('sprint-container');
+      container.innerHTML = `
+        <input type="color" class="sprint-color-picker" value="${sprint.SprintColor}" disabled>
+        <h2 class="sprint-heading" style="--sprint-color: ${sprint.SprintColor};">${sprint.SprintName}</h2>
+        <table class="task-table" id="taskTable-${sprint.SprintID}" style="--sprint-color: ${sprint.SprintColor};">
+          <thead>
+            <tr>
+              <th><input id="sprintId--${sprint.SprintID}" type="checkbox" class="select-all-checkbox"></th>
+              <th>Task Name</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Owner(s)</th>
+              <th>Due Date</th>
+              <th>Tags</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="add-task-row">
+              <td colspan="7">
+                <input type="text" class="task-input" placeholder="+ Add a task..."
+                  onclick="handleTaskInputClick(event, ${sprint.SprintID})"
+                  onkeypress="addTask(event, ${sprint.SprintID})">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      const mainContent = document.querySelector('.main-content');
+      mainContent.insertBefore(container, mainContent.firstChild);
+    };
+</script>
+
+
+
+<!--Check Box -->
+<script>
+// Checkbox logic to select all tasks in a sprint
+document.addEventListener("change", function (e) {
+  if (e.target.classList.contains("select-all-checkbox")) {
+    const sprintId = e.target.id.split('--')[1];
+    const checkboxes = document.querySelectorAll(`#taskTable-${sprintId} .task-checkbox`);
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = e.target.checked;
+      const taskRow = checkbox.closest(".task-row");
+      taskRow.classList.toggle("selected", e.target.checked);
+    });
+  } else if (e.target.classList.contains("task-checkbox")) {
+    const taskRow = e.target.closest(".task-row");
+    taskRow.classList.toggle("selected", e.target.checked);
+  }
+});
+
+</script>
+
+
+
+<script>
+
+    //const projectId = document.body.getAttribute('data-project-id');
+   // console.log('Project ID:', projectId);
+
+
+    // ------------ Menu -----------
+    document.addEventListener('DOMContentLoaded', () => {
+      const contextMenu = document.getElementById('taskContextMenu');
+      let currentTaskId = null; // Track which task was right-clicked
+
+      // Show the context menu on right-click
+      document.querySelectorAll('.task-row').forEach(taskRow => {
+        taskRow.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          currentTaskId = taskRow.id.split('-')[1]; // Extract Task ID
+
+          // Get the mouse coordinates
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+
+          // Adjust menu position
+          contextMenu.style.left = `${mouseX}px`;
+          contextMenu.style.top = `${mouseY}px`;
+          contextMenu.style.display = 'block';
+        });
+      });
+
+      // Hide the context menu on click outside
+      document.addEventListener('click', () => {
+        contextMenu.style.display = 'none';
+      });
+
+      // Define context menu actions
+      window.editTask = () => {
+        alert(`Edit task: ${currentTaskId}`);
+        // Implement edit logic here
+      };
+
+      window.deleteTask = () => {
+        openDeleteModal(currentTaskId);
+        //alert(`Delete task: ${currentTaskId}`);
+        // Implement delete logic here
+      };
+
+      window.assignUser = () => {
+        alert(`Assign user to task: ${currentTaskId}`);
+        // Implement assign logic here
+      };
+
+      window.setPriority = () => {
+        alert(`Set priority for task: ${currentTaskId}`);
+        // Implement priority setting logic here
+      };
+
+      window.viewHistory = () => {
+        alert(`View history for task: ${currentTaskId}`);
+        // Implement history viewing logic here
+      };
+
+      window.duplicateTask = () => {
+        alert(`Duplicate task: ${currentTaskId}`);
+        // Implement duplication logic here
+      };
+
+      window.addComment = () => {
+      alert(`Add a comment to the task.`);
+      // Implement comment logic
+    };
+
+    window.archiveTask = () => {
+      alert(`Archive the task.`);
+      // Implement archive logic
+    };
+
+    window.changeColor = () => {
+      alert(`Change the task's color.`);
+      // Implement color change logic
+    };
+
+    window.tagTask = () => {
+      alert(`Add tags to the task.`);
+      // Implement tag logic
+    };
+
+    window.exportTask = () => {
+      alert(`Export task details.`);
+      // Implement export logic
+    };
+
+    window.pinTask = () => {
+      alert(`Pin the task for quick access.`);
+      // Implement pin logic
+    };
+
+    });
+
+    // -----------------------------
+
+// -------------------------  Draggable  -----------------
+let draggedTask = null;
+
+// Triggered when dragging starts
+function dragStart(event) {
+  draggedTask = event.target; // The row being dragged
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', draggedTask.id);
+}
+
+// Triggered when dragging over another row
+function dragOver(event) {
+  event.preventDefault(); // Allow dropping
+  event.dataTransfer.dropEffect = 'move';
+}
+
+// Triggered when a row is dropped
+function dropTask(event) {
+  event.preventDefault();
+  const targetTask = event.target.closest('tr'); // The row being dropped onto
+  if (!targetTask || draggedTask === targetTask) return; // Skip if dropping on itself
+
+  // Swap rows visually
+  const taskBody = document.getElementById('taskBody');
+  if (targetTask.rowIndex < draggedTask.rowIndex) {
+    taskBody.insertBefore(draggedTask, targetTask);
+  } else {
+    taskBody.insertBefore(draggedTask, targetTask.nextSibling);
+  }
+
+  // Update the TaskIDs on the backend
+  updateTaskPositions(draggedTask.id.split('-')[1], targetTask.id.split('-')[1]);
+}
+
+// Update the task positions via API
+function updateTaskPositions(draggedTaskID, targetTaskID) {
+  fetch('/update_task_positions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      draggedTaskID,
+      targetTaskID,
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to update task positions');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      console.log('Task positions updated successfully:', data);
+    })
+    .catch((error) => {
+      console.error('Error updating task positions:', error);
+    });
+}
+
+
+
+// --------------------------------------  DELETE  --------------------------------------
+let taskToDelete = null; // To store the task ID temporarily
+
+function openDeleteModal(taskId) {
+    console.log("Opening modal for Task ID:", taskId); // Debugging log
+    taskToDelete = taskId;
+    const modal = document.getElementById("deleteModal");
+    console.log(modal);
+    modal.style.display = "block";
+}
+
+function closeDeleteModal() {
+    //console.log("Closing modal"); // Debugging log
+    taskToDelete = null;
+    const modal = document.getElementById("deleteModal");
+    modal.style.display = "none";
+}
+
+
+function confirmDelete() {
+    //console.log("Confirm delete triggered for Task ID:", taskToDelete); // Debugging log
+    if (!taskToDelete) {
+        alert("Task ID is missing");
+        return;
+    }
+
+    const projectId = document.body.getAttribute('data-project-id');
+    //const sprintId = element.closest("tbody").id.replace("taskBody-", "");
+    //console.log("Deleting Task ID:", taskToDelete, "in Project ID:", projectId); // Debugging log
+
+    fetch("/delete_task", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+        task_id: taskToDelete,
+        project_id: projectId
+        }),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            //console.log("Response:", data); // Debugging log
+            if (data.status === "success") {
+                const taskElement = document.getElementById(`task-${taskToDelete}`);
+                if (taskElement) taskElement.remove();
+                //alert(data.message);
+            } else {
+                alert(data.message || "Failed to delete task.");
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred. Please try again.");
+        })
+        .finally(() => {
+            closeDeleteModal();
+        });
+}
+
+
+
+
+
+
+
+
+
+const spinner = document.querySelector('.loading-spinner');
+function toggleSpinner(show) {
+  spinner.style.display = show ? 'block' : 'none';
+}
+
+// ------
+  document.querySelector('.sidebar-toggle').addEventListener('click', () => {
+  document.querySelector('.sidebar').classList.toggle('collapsed');
+});
+
+</script>
+<!--<script src="static/js/popup.js" defer></script>-->
+
+<!-- NO IMPORTANT  (DROP MENU)  -->
+
+</body>
+</html>

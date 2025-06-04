@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+      <style>
+    #comment-widget {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    /* Comments container */
+    #comments-container {
+      margin-bottom: 20px;
+    }
+    .comment {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      position: relative;
+    }
+    .comment:last-child {
+      border-bottom: none;
+    }
+    .comment .meta {
+      font-size: 0.85em;
+      color: #555;
+    }
+    .comment .meta span.username {
+      font-weight: bold;
+    }
+    .comment .meta span.timestamp {
+      margin-left: 10px;
+      cursor: help;
+    }
+    .comment .content {
+      margin-top: 5px;
+      white-space: pre-wrap;
+    }
+    .comment .actions {
+      margin-top: 5px;
+    }
+    .comment .actions button {
+      margin-right: 5px;
+      font-size: 0.8em;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    /* Reply container (nested comments) */
+    .reply-container {
+      margin-left: 30px;
+      margin-top: 10px;
+    }
+    /* New comment input */
+    #new-comment {
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+    #comment-input {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+      min-height: 80px;
+      outline: none;
+    }
+    /* Placeholder text for contenteditable */
+    #comment-input:empty:before {
+      content: attr(placeholder);
+      color: #aaa;
+    }
+    .toolbar {
+      margin-top: 5px;
+    }
+    .toolbar button {
+      font-size: 0.8em;
+      margin-right: 5px;
+    }
+    #send-comment {
+      margin-top: 5px;
+      padding: 6px 12px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    /* Mentions dropdown */
+    #mentions-dropdown {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: none;
+      z-index: 1000;
+    }
+    #mentions-dropdown ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #mentions-dropdown li {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    #mentions-dropdown li:hover {
+      background: #eee;
+    }
+    /* Responsive styles */
+    @media (max-width: 600px) {
+      #comment-widget {
+        margin: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="comment-widget">
+    <h2>Comments</h2>
+    <div id="comments-container">
+      <!-- Existing comments will be rendered here -->
+    </div>
+    <div id="new-comment">
+      <div id="comment-input" contenteditable="true" placeholder="Type your comment here..."></div>
+      <div class="toolbar">
+        <button id="attach-btn">Attach File</button>
+        <button id="mention-btn">@Mention</button>
+        <button id="emoji-btn">😊</button>
+      </div>
+      <button id="send-comment">Send</button>
+      <input type="file" id="file-input" style="display:none">
+      <!-- Mentions dropdown -->
+      <div id="mentions-dropdown">
+        <ul></ul>
+      </div>
+    </div>
+  </div>
+
+
+
+  <script>
+    // IIFE to encapsulate our code
+    (function(){
+      // Simulated current user data
+      const currentUser = {
+        id: 1,
+        name: "John Doe",
+        avatar: "https://via.placeholder.com/32"
+      };
+
+      // Simulated team members for mention suggestions
+      const teamMembers = [
+        { id: 2, name: "Alice Smith" },
+        { id: 3, name: "Bob Johnson" },
+        { id: 4, name: "Charlie Brown" }
+      ];
+
+      // Comments store
+      let comments = [];
+
+      // Utility: Format timestamp (relative time simplified as HH:MM)
+      function formatTimestamp(date) {
+        const options = { hour: '2-digit', minute: '2-digit' };
+        return date.toLocaleTimeString([], options);
+      }
+      // Utility: Full timestamp for hover tooltip
+      function fullTimestamp(date) {
+        return date.toLocaleString();
+      }
+
+      // Get DOM elements
+      const commentsContainer = document.getElementById("comments-container");
+      const commentInput = document.getElementById("comment-input");
+      const sendCommentBtn = document.getElementById("send-comment");
+      const attachBtn = document.getElementById("attach-btn");
+      const fileInput = document.getElementById("file-input");
+      const mentionBtn = document.getElementById("mention-btn");
+      const emojiBtn = document.getElementById("emoji-btn");
+      const mentionsDropdown = document.getElementById("mentions-dropdown");
+
+      // Event: Send comment
+      sendCommentBtn.addEventListener("click", function(){
+        const content = commentInput.innerHTML.trim();
+        if (content === "") return;
+        const comment = {
+          id: Date.now(),
+          user: currentUser,
+          content: content,
+          timestamp: new Date(),
+          replies: [],
+          pinned: false,
+          reactions: { like: 0 },
+          file: null
+        };
+        comments.push(comment);
+        commentInput.innerHTML = "";
+        renderComments();
+      });
+
+      // Event: Attach file (simulate by appending file name)
+      attachBtn.addEventListener("click", function(){
+        fileInput.click();
+      });
+      fileInput.addEventListener("change", function(e){
+        const file = e.target.files[0];
+        if (file) {
+          const fileTag = `<div style="border:1px solid #ccc; padding:5px; margin:5px 0;"><strong>Attached:</strong> ${file.name}</div>`;
+          commentInput.innerHTML += fileTag;
+        }
+      });
+
+      // Event: Insert emoji at cursor
+      emojiBtn.addEventListener("click", function(){
+        insertAtCursor(commentInput, "😊");
+      });
+
+      // Event: Show mention dropdown on @ key press in input
+      commentInput.addEventListener("keyup", function(e){
+        const sel = window.getSelection();
+        const node = sel.anchorNode;
+        const text = node ? node.textContent : "";
+        const atIndex = text.lastIndexOf("@");
+        if (atIndex !== -1) {
+          const query = text.substring(atIndex + 1);
+          populateMentionsDropdown(query);
+          // Position dropdown near cursor
+          const range = sel.getRangeAt(0);
+          const rects = range.getClientRects();
+          if (rects.length > 0) {
+            const rect = rects[0];
+            mentionsDropdown.style.top = (rect.bottom + window.scrollY) + "px";
+            mentionsDropdown.style.left = (rect.left + window.scrollX) + "px";
+          }
+          mentionsDropdown.style.display = "block";
+        } else {
+          mentionsDropdown.style.display = "none";
+        }
+      });
+
+      // Event: Manual trigger via mention button
+      mentionBtn.addEventListener("click", function(e){
+        const rect = mentionBtn.getBoundingClientRect();
+        mentionsDropdown.style.top = (rect.bottom + window.scrollY) + "px";
+        mentionsDropdown.style.left = (rect.left + window.scrollX) + "px";
+        populateMentionsDropdown("");
+        mentionsDropdown.style.display = "block";
+      });
+
+      // Hide mentions dropdown if clicking outside
+      document.addEventListener("click", function(e){
+        if (!mentionsDropdown.contains(e.target) && e.target !== mentionBtn) {
+          mentionsDropdown.style.display = "none";
+        }
+      });
+
+      // Populate mention suggestions
+      function populateMentionsDropdown(query) {
+        const ul = mentionsDropdown.querySelector("ul");
+        ul.innerHTML = "";
+        const filtered = teamMembers.filter(member => member.name.toLowerCase().includes(query.toLowerCase()));
+        filtered.forEach(member => {
+          const li = document.createElement("li");
+          li.textContent = member.name;
+          li.addEventListener("click", function(){
+            insertAtCursor(commentInput, `@${member.name} `);
+            mentionsDropdown.style.display = "none";
+          });
+          ul.appendChild(li);
+        });
+        if (filtered.length === 0) {
+          const li = document.createElement("li");
+          li.textContent = "No matches";
+          ul.appendChild(li);
+        }
+      }
+
+      // Utility: Insert text at cursor position in contenteditable div
+      function insertAtCursor(editableDiv, text) {
+        let sel, range;
+        if (window.getSelection) {
+          sel = window.getSelection();
+          if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(text);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }
+      }
+
+      // Render all comments
+      function renderComments() {
+        commentsContainer.innerHTML = "";
+        // Sort comments: pinned first, then by timestamp
+        const sorted = comments.slice().sort((a, b) => b.pinned - a.pinned || a.timestamp - b.timestamp);
+        sorted.forEach(comment => {
+          const div = document.createElement("div");
+          div.className = "comment";
+          div.dataset.commentId = comment.id;
+          div.innerHTML = `
+            <div class="meta">
+              <img src="${comment.user.avatar}" alt="avatar" style="vertical-align: middle; border-radius: 50%; width: 24px; height: 24px; margin-right: 5px;">
+              <span class="username">${comment.user.name}</span>
+              <span class="timestamp" title="${fullTimestamp(comment.timestamp)}">${formatTimestamp(comment.timestamp)}</span>
+            </div>
+            <div class="content">${comment.content}</div>
+            <div class="actions">
+              <button class="reply-btn">Reply</button>
+              <button class="edit-btn">Edit</button>
+              <button class="delete-btn">Delete</button>
+              <button class="like-btn">Like (<span class="like-count">${comment.reactions.like}</span>)</button>
+              <button class="pin-btn">${comment.pinned ? "Unpin" : "Pin"}</button>
+            </div>
+            <div class="reply-container"></div>
+          `;
+          // Action button event listeners
+          div.querySelector(".reply-btn").addEventListener("click", function(){
+            showReplyInput(div);
+          });
+          div.querySelector(".edit-btn").addEventListener("click", function(){
+            editComment(div, comment);
+          });
+          div.querySelector(".delete-btn").addEventListener("click", function(){
+            if (confirm("Delete this comment?")) {
+              deleteComment(comment.id);
+            }
+          });
+          div.querySelector(".like-btn").addEventListener("click", function(){
+            comment.reactions.like++;
+            div.querySelector(".like-count").textContent = comment.reactions.like;
+          });
+          div.querySelector(".pin-btn").addEventListener("click", function(){
+            comment.pinned = !comment.pinned;
+            renderComments();
+          });
+          commentsContainer.appendChild(div);
+          // Render replies if any
+          if (comment.replies.length > 0) {
+            renderReplies(div, comment.replies);
+          }
+        });
+      }
+
+      // Show reply input field under a comment
+      function showReplyInput(commentDiv) {
+        const replyContainer = commentDiv.querySelector(".reply-container");
+        if (replyContainer.querySelector(".reply-input")) return; // avoid duplicates
+        const replyInput = document.createElement("div");
+        replyInput.className = "reply-input";
+        replyInput.contentEditable = "true";
+        replyInput.style.border = "1px solid #ddd";
+        replyInput.style.padding = "5px";
+        replyInput.style.marginTop = "5px";
+        replyInput.style.minHeight = "40px";
+        replyInput.setAttribute("placeholder", "Type your reply...");
+        const sendReplyBtn = document.createElement("button");
+        sendReplyBtn.textContent = "Send Reply";
+        sendReplyBtn.style.marginTop = "5px";
+        replyContainer.appendChild(replyInput);
+        replyContainer.appendChild(sendReplyBtn);
+        sendReplyBtn.addEventListener("click", function(){
+          const content = replyInput.innerHTML.trim();
+          if (content === "") return;
+          const parentId = parseInt(commentDiv.dataset.commentId);
+          const parentComment = comments.find(c => c.id === parentId);
+          const reply = {
+            id: Date.now(),
+            user: currentUser,
+            content: content,
+            timestamp: new Date(),
+            reactions: { like: 0 }
+          };
+          parentComment.replies.push(reply);
+          replyContainer.innerHTML = "";
+          renderReplies(commentDiv, parentComment.replies);
+        });
+      }
+
+      // Render replies for a comment
+      function renderReplies(commentDiv, replies) {
+        const replyContainer = commentDiv.querySelector(".reply-container");
+        replyContainer.innerHTML = "";
+        replies.forEach(reply => {
+          const div = document.createElement("div");
+          div.className = "comment reply";
+          div.dataset.commentId = reply.id;
+          div.innerHTML = `
+            <div class="meta">
+              <img src="${currentUser.avatar}" alt="avatar" style="vertical-align: middle; border-radius: 50%; width: 20px; height: 20px; margin-right: 5px;">
+              <span class="username">${reply.user.name}</span>
+              <span class="timestamp" title="${fullTimestamp(reply.timestamp)}">${formatTimestamp(reply.timestamp)}</span>
+            </div>
+            <div class="content">${reply.content}</div>
+            <div class="actions">
+              <button class="edit-reply-btn">Edit</button>
+              <button class="delete-reply-btn">Delete</button>
+              <button class="like-reply-btn">Like (<span class="like-count">${reply.reactions.like}</span>)</button>
+            </div>
+          `;
+          div.querySelector(".edit-reply-btn").addEventListener("click", function(){
+            editReply(div, reply, commentDiv);
+          });
+          div.querySelector(".delete-reply-btn").addEventListener("click", function(){
+            const parentId = parseInt(commentDiv.dataset.commentId);
+            const parentComment = comments.find(c => c.id === parentId);
+            parentComment.replies = parentComment.replies.filter(r => r.id !== reply.id);
+            renderReplies(commentDiv, parentComment.replies);
+          });
+          div.querySelector(".like-reply-btn").addEventListener("click", function(){
+            reply.reactions.like++;
+            div.querySelector(".like-count").textContent = reply.reactions.like;
+          });
+          replyContainer.appendChild(div);
+        });
+      }
+
+      // Edit comment function
+      function editComment(commentDiv, commentObj) {
+        const contentDiv = commentDiv.querySelector(".content");
+        contentDiv.contentEditable = "true";
+        contentDiv.focus();
+        contentDiv.addEventListener("blur", function(){
+          commentObj.content = contentDiv.innerHTML;
+          contentDiv.contentEditable = "false";
+          renderComments();
+        }, {once: true});
+      }
+
+      // Edit reply function
+      function editReply(replyDiv, replyObj, parentCommentDiv) {
+        const contentDiv = replyDiv.querySelector(".content");
+        contentDiv.contentEditable = "true";
+        contentDiv.focus();
+        contentDiv.addEventListener("blur", function(){
+          replyObj.content = contentDiv.innerHTML;
+          contentDiv.contentEditable = "false";
+          const parentId = parseInt(parentCommentDiv.dataset.commentId);
+          const parentComment = comments.find(c => c.id === parentId);
+          renderReplies(parentCommentDiv, parentComment.replies);
+        }, {once: true});
+      }
+
+      // Delete comment function
+      function deleteComment(commentId) {
+        comments = comments.filter(c => c.id !== commentId);
+        renderComments();
+      }
+
+      // Initial render
+      renderComments();
+    })();
+  </script>
+</body>
+</html>

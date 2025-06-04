@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to right, #1f1c2c, #928dab);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    nav {
+      align-self: flex-start;
+      margin-bottom: 40px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #f7f7f7;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s;
+      margin-right: 10px;
+    }
+
+    nav a:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .profile-card {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      max-width: 400px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .profile-card img {
+      border-radius: 50%;
+      border: 3px solid #fff;
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      margin-bottom: 20px;
+    }
+
+    .profile-card h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .profile-card p {
+      margin: 8px 0;
+      font-size: 16px;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/projects">🏠 Home</a>
+    <a href="/settings">⚙️ Settings</a>
+  </nav>
+  <div class="profile-card">
+    <img src="{{ session['pic'] }}" alt="Avatar">
+    <h1>{{ session['username'] }}</h1>
+    <p>Email: {{ session['email'] }}</p>
+  </div>
+</body>
+</html>

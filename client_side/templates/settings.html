@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to right, #1e130c, #9a8478);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    nav {
+      align-self: flex-start;
+      margin-bottom: 40px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #f7f7f7;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+
+    .settings-card {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    input[type="file"] {
+      margin-bottom: 20px;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+    }
+
+    #crop-container {
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+
+    #crop-container img {
+      max-width: 100%;
+    }
+
+    #final-preview {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    #final-preview img {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    button {
+      background: linear-gradient(to right, #ff4b2b, #ff416c);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/projects">🏠 Home</a>
+    <a href="/profile">👤 Profile</a>
+  </nav>
+
+  <div class="settings-card">
+    <h1>Settings</h1>
+
+    <label for="avatar">Choose Your New Avatar</label>
+    <input type="file" id="avatar" accept="image/*" onchange="loadImage(event)">
+
+    <div id="crop-container">
+      <img id="crop-image" style="display:none;">
+    </div>
+
+    <div id="final-preview">
+      <p>Preview:</p>
+      <img id="preview-img">
+    </div>
+
+    <form id="upload-form" method="POST" enctype="multipart/form-data" action="/upload-avatar">
+      <input type="hidden" name="croppedImage" id="croppedImageData">
+      <button type="button" onclick="cropImage()">Crop & Preview</button>
+      <button type="submit">Upload Avatar</button>
+    </form>
+  </div>
+
+  <script>
+    let cropper;
+
+    function loadImage(event) {
+      const image = document.getElementById('crop-image');
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        image.src = e.target.result;
+        image.style.display = 'block';
+
+        if (cropper) {
+          cropper.destroy();
+        }
+
+        cropper = new Cropper(image, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          background: false,
+          autoCropArea: 1,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function cropImage() {
+      if (cropper) {
+        const canvas = cropper.getCroppedCanvas({
+          width: 300,
+          height: 300,
+          imageSmoothingQuality: 'high'
+        });
+
+        const croppedDataUrl = canvas.toDataURL('image/jpeg');
+        document.getElementById('preview-img').src = croppedDataUrl;
+        document.getElementById('croppedImageData').value = croppedDataUrl;
+        document.getElementById('final-preview').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

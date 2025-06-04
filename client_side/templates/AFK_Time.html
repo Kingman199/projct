@@ -1,0 +1,106 @@
+<style>
+.idle-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 99; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.4); /* Black with opacity */
+    padding-top: 60px;
+}
+
+.idle-modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+}
+
+.idle-modal-content  button {
+    padding: 10px 20px;
+    margin: 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.idle-modal-content  button:hover {
+    background-color: #ddd;
+}
+
+/* Utility classes to toggle modal visibility */
+.idle-modal.hidden {
+    display: none;
+}
+
+.idle-modal.visible {
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    let idleTime = 0;
+    const maxIdle = 5; // minutes
+    const warningTime = 3.5; // minutes
+
+    const modal = document.getElementById("idleTimeoutModal");
+    const stayLoggedInBtn = document.getElementById("stayLoggedInBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    if (!modal || !stayLoggedInBtn || !logoutBtn) {
+        console.error("Idle modal elements not found.");
+        return;
+    }
+
+    function showModal() {
+        modal.classList.remove("hidden");
+        modal.classList.add("visible");
+    }
+
+    function hideModal() {
+        modal.classList.remove("visible");
+        modal.classList.add("hidden");
+    }
+
+    function resetIdleTimer() {
+        idleTime = 0;
+        hideModal();
+    }
+
+    function pingServer() {
+        fetch("/reset_timer", { method: "POST" })
+            .catch(err => console.warn("Session ping failed:", err));
+    }
+
+    const idleInterval = setInterval(() => {
+        idleTime++;
+
+        if (idleTime >= warningTime && idleTime < maxIdle) {
+            showModal();
+        } else if (idleTime >= maxIdle) {
+            window.location.href = "/logout";
+        }
+    }, 60000); // Every minute
+
+    ["mousemove", "keydown", "click", "scroll"].forEach(evt => {
+        document.addEventListener(evt, () => {
+            resetIdleTimer();
+            pingServer();
+        });
+    });
+
+    stayLoggedInBtn.addEventListener("click", () => {
+        resetIdleTimer();
+        pingServer();
+    });
+
+    logoutBtn.addEventListener("click", () => {
+        window.location.href = "/logout";
+    });
+});
+</script>

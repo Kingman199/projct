@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sunday.com – Login / Sign Up</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100&display=swap');
+
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%;
+      background: #212121;
+      font-family: 'Roboto Mono', monospace;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .container {
+      position: relative;        /* make it the positioning context */
+      text-align: center;
+      color: #FAFAFA;
+      padding-top: 60px;         /* space for the text above */
+    }
+
+
+    /* animated text now sits above the form, centered */
+    .text-container {
+      position: absolute;
+      top: 0;                    /* at the very top of .container */
+      left: 50%;                 /* centered horizontally */
+      transform: translateX(-50%);
+      height: 40px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .text {
+      position: relative;
+      width: 100%;
+      white-space: nowrap;
+      font-size: 28px;
+      font-weight: 100;
+      text-align: center;
+      color: #FAFAFA;
+    }
+
+    .dud {
+      color: #e0e0e0;
+      opacity: 0.7;
+    }
+
+    .form-container {
+      background: #333;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      width: 300px;
+      box-sizing: border-box;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+    .form-container input[type="text"],
+    .form-container input[type="password"],
+    .form-container input[type="email"] {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 4px;
+      background: #444;
+      color: #FAFAFA;
+      box-sizing: border-box;
+    }
+    .form-container input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 4px;
+      background: #616161;
+      color: #FAFAFA;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .form-container input[type="submit"]:hover {
+      background: #757575;
+    }
+    .toggle {
+      display: block;
+      margin-top: 10px;
+      color: #90CAF9;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    .toggle:hover {
+      color: #BBDEFB;
+    }
+    .error {
+      color: #e81c29;
+      margin-top: 10px;
+    }
+
+    .success {
+      color: #4CAF50;
+      background: #1B5E20;
+      border-radius: 4px;
+      padding: 8px;
+      margin-top: 10px;
+      font-size: 14px;
+      animation: fadeIn 0.8s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .idle-message {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #424242;
+      color: #FFD54F;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0.9;
+      animation: fadeIn 0.5s ease-in-out;
+      z-index: 10;
+    }
+  </style>
+  <style>
+    .toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #ff7043;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-size: 14px;
+  z-index: 999;
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.toast.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Idle Message */
+#idle-message {
+  animation: fadeIn 1s ease-in;
+}
+
+/* Overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+}
+.overlay-content {
+  color: #fff;
+  font-size: 22px;
+  background: #424242;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.1);
+  animation: popIn 0.6s ease;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+  </style>
+</head>
+<div id="toast-warning" class="toast" style="display:none;">
+  <span>Hey! Are you still there? 😊</span>
+</div>
+<div id="overlay-warning" class="overlay">
+  <div class="overlay-content">
+    <p>We’re still here… just waiting for you 👀</p>
+  </div>
+</div>
+
+<body>
+
+  <div class="container">
+    <div class="text-container"><div class="text">Loading…</div></div>
+
+    <div class="form-container" id="login-form">
+      <form action="/login" method="post">
+          <input type="text"     name="username" placeholder="Username" required/>
+          <input type="password" name="password" placeholder="Password" required/>
+          <input type="submit"   value="Login"/>
+
+          {% if message %}
+            <div class="success">{{ message }}</div>
+          {% endif %}
+
+          {% if error and request.path == '/login' %}
+            <div class="error">{{ error }}</div>
+          {% endif %}
+        </form>
+      <span class="toggle" onclick="toggleForm()">Don't have an account? Sign Up</span>
+    </div>
+
+    <div class="form-container" id="signup-form" style="display:none">
+      <form action="/register" method="post">
+        <input type="text"     name="username" placeholder="Username" required/>
+        <input type="email"    name="email"    placeholder="Email"    required/>
+        <input type="password" name="password" placeholder="Password" required/>
+        <input type="submit"   value="Sign Up"/>
+        {% if error and request.path == '/register' %}
+          <div class="error">{{ error }}</div>
+        {% endif %}
+      </form>
+      <span class="toggle" onclick="toggleForm()">Already have an account? Login</span>
+    </div>
+  </div>
+
+  <script>
+    // Measure text width in px
+    function measureTextWidth(text, font) {
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.font = font;
+      return ctx.measureText(text).width;
+    }
+
+    class TextScramble {
+      constructor(el) {
+        this.el = el;
+        this.chars = '!<>-_\\/[]{}—=+*^?#________';
+        this.update = this.update.bind(this);
+      }
+
+        setText(newText) {
+          const oldText = this.el.textContent;
+          const length  = Math.max(oldText.length, newText.length);
+          this.queue = [];
+
+          // How many frames between revealing each next letter?
+          const revealStagger = 5;
+
+          for (let i = 0; i < length; i++) {
+            const from  = oldText[i] || '';
+            const to    = newText[i] || '';
+
+            // Stagger start by index:
+            const start = i * revealStagger;
+            // Short, fixed scramble duration:
+            const end   = start + 15;
+
+            this.queue.push({ from, to, start, end });
+          }
+
+          cancelAnimationFrame(this.frameReq);
+          this.frame = 0;
+          return new Promise(res => {
+            this.resolve = res;
+            this.update();
+          });
+        }
+
+      update() {
+        let output = '';
+        let done   = 0;
+
+        for (let q of this.queue) {
+          const { from, to, start, end } = q;
+          if (this.frame >= end) {
+            done++;
+            output += to;
+          } else if (this.frame >= start) {
+            if (!q.char || Math.random() < 0.28) {
+              q.char = this.randomChar();
+            }
+            output += `<span class="dud">${q.char}</span>`;
+          } else {
+            output += from;
+          }
+        }
+
+        this.el.innerHTML = output;
+
+        if (done === this.queue.length) {
+          this.resolve();
+        } else {
+          this.frameReq = requestAnimationFrame(this.update);
+          this.frame++;
+        }
+      }
+
+      randomChar() {
+        return this.chars[Math.floor(Math.random() * this.chars.length)];
+      }
+    }
+
+    // Phrases and initial setup
+    const phrases = [
+      'Welcome to Sunday.com',
+      'Your journey starts here',
+      'Sign in or Sign up',
+      'Built for the Way Your Brain Works',
+      'Where your thoughts become tasks',
+      'Organize your brain with style'
+    ];
+
+    // Compute longest width
+    const fontSpec = '100 28px Roboto Mono';
+    let maxW = 0;
+    for (let p of phrases) {
+      maxW = Math.max(maxW, measureTextWidth(p, fontSpec));
+    }
+    // Add small buffer
+    maxW = Math.ceil(maxW) + 10;
+
+    // Apply width
+    const container = document.querySelector('.text-container');
+    container.style.minWidth = maxW + 'px';
+
+    // Start scramble
+    const el = document.querySelector('.text');
+    const fx = new TextScramble(el);
+    let idx = 0;
+    function next() {
+      fx.setText(phrases[idx]).then(() => {
+        setTimeout(next, 1500);
+      });
+      idx = (idx + 1) % phrases.length;
+    }
+    next();
+
+    function toggleForm() {
+      const L = document.getElementById('login-form');
+      const S = document.getElementById('signup-form');
+      if (L.style.display === 'none') {
+        L.style.display = 'block';
+        S.style.display = 'none';
+      } else {
+        L.style.display = 'none';
+        S.style.display = 'block';
+      }
+    }
+  </script>
+
+<script>
+  let idleTime = 0;
+  let messageShown = false;
+  let toastShown = false;
+  let overlayShown = false;
+
+  setInterval(() => {
+    idleTime++;
+
+    // After 60s - gentle message
+    if (idleTime === 60 && !messageShown) {
+      const msg = document.createElement('div');
+      msg.textContent = "The system is waiting for your actions!";
+      msg.style.color = "#90CAF9";
+      msg.style.marginTop = "10px";
+      msg.style.fontSize = "14px";
+      msg.id = "idle-message";
+      document.querySelector('.form-container').appendChild(msg);
+      messageShown = true;
+    }
+
+    // After 300s - toast popup
+    if (idleTime === 300 && !toastShown) {
+      const toast = document.getElementById('toast-warning');
+      toast.classList.add('show');
+      toast.style.display = 'block';
+      toastShown = true;
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.style.display = 'none', 400);
+      }, 5000);
+    }
+
+    // After 480s - screen overlay
+    if (idleTime === 480 && !overlayShown) {
+      const overlay = document.getElementById('overlay-warning');
+      overlay.style.display = 'flex';
+      overlayShown = true;
+    }
+  }, 1000);
+
+  // Reset everything when user interacts
+  function resetIdleTimer() {
+    idleTime = 0;
+
+    const msg = document.getElementById('idle-message');
+    if (msg) msg.remove();
+    messageShown = false;
+
+    const toast = document.getElementById('toast-warning');
+    if (toast) {
+      toast.classList.remove('show');
+      toast.style.display = 'none';
+    }
+    toastShown = false;
+
+    const overlay = document.getElementById('overlay-warning');
+    if (overlay) overlay.style.display = 'none';
+    overlayShown = false;
+  }
+
+  ['mousemove', 'keydown', 'scroll', 'click'].forEach(evt =>
+    window.addEventListener(evt, resetIdleTimer)
+  );
+</script>
+
+
+</body>
+</html>

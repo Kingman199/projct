@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Friend Request Notifications</title>
+    <script>
+        if (!sessionStorage.getItem("pageReloaded")) {
+            sessionStorage.setItem("pageReloaded", "true");
+            window.location.reload();
+        }
+    </script>
+  <style>
+    /* General Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background-color: #121212; color: #e0e0e0; overflow-x: hidden; }
+    /* Top Menu */
+    .topmenu { background: #0073e6; color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .topmenu .logo { font-size: 1.5em; font-weight: bold; }
+    .topmenu nav { display: flex; align-items: center; }
+    .topmenu nav a { color: #fff; text-decoration: none; margin: 0 15px; font-size: 1em; transition: opacity 0.3s; }
+    .topmenu nav a:hover { opacity: 0.8; }
+
+    /* Notification Bell */
+    .notification-icon { position: relative; cursor: pointer; font-size: 1.5rem; margin-left: 20px; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 0.8rem; padding: 2px 6px; display: none; }
+
+    /* Notification Dropdown */
+    .notification-dropdown { display: none; position: absolute; right: 10px; top: 50px; background: #333; color: white; width: 250px; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+    .notification-dropdown.show { display: block; }
+    .notification-dropdown p { padding: 8px 10px; border-bottom: 1px solid #444; cursor: pointer; }
+    .notification-dropdown p:hover { background: #444; }
+
+    /* Friend Request Pop-Up */
+    .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; color: #333; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000; }
+    .popup-content { text-align: center; }
+    .popup .close { float: right; cursor: pointer; font-size: 20px; }
+
+  </style>
+
+<style>
+    /* Dropdown */
+.dropdown {
+    display: none;
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background: #fff;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 150px;
+}
+
+.account-menu:hover .dropdown {
+    display: block;
+}
+
+.dropdown a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    transition: background 0.2s;
+}
+
+.dropdown a:hover {
+    background: #f4f4f4;
+}
+</style>
+<style>
+        /* Make "Friends" title darker */
+.friends-list a {
+    color: #bbb; /* Darker gray */
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Darken friend names */
+.friend-entry .friend-name {
+    color: #c0c0c0; /* Medium-dark gray */
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Improve button contrast */
+.friend-entry button {
+    //background: #444; /* Darker button */
+    width: 20;
+    color: #fff;
+    border: 1px solid #666;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.friend-entry button:hover {
+    background: #1f; /* Slightly lighter hover */
+}
+
+/* Darken status indicator */
+.friend-entry .status {
+    border: 2px solid #444; /* Darker border */
+}
+
+/* Darken the friends-list background */
+.friends-list {
+    //background: #1a1a1a; /* Dark background */
+    padding: 10px;
+    //border-radius: 8px;
+}
+.friends-list .friend-entry:hover {
+    background: rgba(175, 163, 169, 0.15); /* Slightly lighter hover */
+}
+    </style>
+<style>
+/* Friends Grid */
+.friends-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.friend-card {
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    background: #222;
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-in-out;
+}
+
+.friend-card:hover {
+    transform: scale(1.05);
+    background: #2a2a2a;
+}
+
+.friend-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    border: 2px solid #0073e6;
+}
+
+.friend-card h4 {
+    margin-bottom: 5px;
+    font-size: 1.2em;
+}
+
+.friend-card button {
+    padding: 5px 10px;
+    border: none;
+    background: #0073e6;
+    color: white;
+    font-size: 0.9em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.friend-card button:hover {
+    background: #005bb5;
+}
+
+.status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 5px;
+}
+
+.online {
+    background: green;
+}
+
+.offline {
+    background: gray;
+}
+</style>
+<style>
+    /* Account Menu */
+.account-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    padding: 8px 15px;
+    border-radius: 25px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.account-menu:hover {
+    background: #f0f0f0;
+}
+
+.account-menu img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ddd;
+    transition: transform 0.2s ease-in-out;
+}
+
+.account-menu img:hover {
+    transform: scale(1.1);
+}
+
+.account-menu button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.account-menu button:hover {
+    color: #007bff;
+}
+
+</style>
+<style>
+/* Import a futuristic but subtle font */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400&display=swap');
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 20, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(0, 255, 170, 0.2);
+    width: 300px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    color: #a8f0d1;
+    border: 1px solid rgba(0, 255, 170, 0.4);
+
+    z-index: 100;
+}
+
+.modal-content h3 {
+    font-size: 18px;
+    color: #a8f0d1;
+    margin-bottom: 10px;
+}
+
+.cyber-input {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid rgba(0, 255, 170, 0.6);
+    background: rgba(0, 0, 0, 0.8);
+    color: #a8f0d1;
+    text-align: center;
+    font-size: 14px;
+    outline: none;
+    border-radius: 5px;
+}
+
+.cyber-input::placeholder {
+    color: rgba(168, 240, 209, 0.6);
+}
+
+.cyber-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin: 10px 0;
+    color: #a8f0d1;
+}
+
+.cyber-checkbox input {
+    margin-right: 5px;
+}
+
+.modal-buttons {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.cyber-button {
+    padding: 8px 15px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 45%;
+    text-transform: uppercase;
+    border-radius: 5px;
+}
+
+.cyber-button.confirm {
+    background: #00b88a;
+    color: #fff;
+    transition: 0.3s ease-in-out;
+}
+
+.cyber-button.confirm:hover {
+    background: #009e75;
+}
+
+.cyber-button.cancel {
+    background: #d14b4b;
+    color: #fff;
+    transition: 0.3s ease-in-out;
+}
+
+.cyber-button.cancel:hover {
+    background: #b53c3c;
+}
+</style>
+
+
+</head>
+<body data-session-id="{{ session['session_id'] }}">
+
+    <!-- Top Menu -->
+    <header class="topmenu">
+      <div class="logo">Sunday</div>
+      <nav>
+        <a href="/404">Dashboard</a>
+        <a href="/projects">Projects</a>
+        <a href="/404">Tasks</a>
+      </nav>
+      <div class="account-menu">
+        {% if session.get('pic') %}
+            <img src="{{ session['pic'] }}" alt="Profile Picture" width="40">
+        {% endif %}
+        <button >{{ session['username'] }} &#9662;</button>
+
+        <div class="dropdown">
+            <a href="/profile">Profile</a>
+            <a href="/settings">Settings</a>
+            <a href="/logout">Logout</a>
+            <hr>
+            <a>Friends</a>
+                <div class="friends-list">
+                    {% for friend in session['friends'] %}
+                    <div class="friend-entry">
+                        <img src="{{ friend.profile_pic }}" alt="Profile Picture" width="20">
+                        <span class="friend-name">{{ friend.username }}</span>
+                        <span class="{% if friend.online %}online{% else %}offline{% endif %}"></span>
+                        <button onclick="messageFriend('{{ friend.id }}')">💬</button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            <hr>
+            <a href="#" onclick="openFriendRequestPopup()">Add Friend</a>
+        </div>
+    </div>
+
+
+
+           <!-- Notification Bell -->
+        <div class="notification-icon" onclick="toggleNotifications()">
+          🔔
+          {% if notifications|length > 0 %}
+            <span id="notification-badge" class="notification-badge">{{ notifications|length }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Notification Dropdown -->
+        <div id="notification-dropdown" class="notification-dropdown">
+          {% if notifications %}
+            {% for notification in notifications %}
+              <div class="notification-item" id="notification-{{ notification.sender_id }}-{{ notification.type }}">
+                <span>{{ notification.message }}</span>
+                <div class="action-buttons">
+                  {% if notification.type == "friend request" %}
+                    <button onclick="event.stopPropagation(); requestPasswordAndRespond('{{ notification.sender_id }}')">Accept Friend</button>
+                    <button onclick="event.stopPropagation(); respondRequest('{{ notification.sender_id }}', 'denied')">Decline</button>
+                  {% elif notification.type == "work request" %}
+                    <button onclick="event.stopPropagation(); acceptWorkRequest('{{ notification.sender_id }}')">Accept Work</button>
+                    <button onclick="event.stopPropagation(); declineWorkRequest('{{ notification.sender_id }}')">Decline</button>
+                  {% else %}
+                    <button disabled>Unknown request</button>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="no-notifications">No notifications</p>
+          {% endif %}
+        </div>
+
+    </header>
+    <!-- Friends Section -->
+    <div class="friends-grid" id="friends-container">
+        <!-- Friends will be dynamically inserted here -->
+    </div>
+
+
+    <!-- Cyber-Themed Password Modal -->
+    <div id="password-modal" class="modal">
+        <div class="modal-content">
+            <h3>🔐 Enter Your Password</h3>
+            <input type="password" id="password-input" placeholder="Enter your password" class="cyber-input">
+            <label class="cyber-checkbox">
+                <input type="checkbox" id="save-password">
+                <span>Remember password</span>
+            </label>
+            <div class="modal-buttons">
+                <button class="cyber-button confirm" onclick="submitPassword()">Confirm</button>
+                <button class="cyber-button cancel" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+var client_id = "{{ session.get('client_id', '') }}"; // Ensure client_id is injected safely
+
+if (!client_id) {
+    console.error("⚠️ Client ID is missing. WebSocket connection may not work.");
+}
+
+var socket = io.connect(window.location.protocol + "//" + document.domain + ":" + location.port);
+
+// Toggle the notification dropdown
+function toggleNotifications() {
+    document.getElementById("notification-dropdown")?.classList.toggle("show");
+}
+
+// Add a new notification
+function addNotification(message, senderId, senderName) {
+    let dropdown = document.getElementById("notification-dropdown");
+
+    if (!dropdown) {
+        console.error("❌ Notification dropdown not found.");
+        return;
+    }
+
+    if (document.getElementById(`notification-${senderId}`)) return; // Prevent duplicates
+
+    senderName = senderName || "Unknown User"; // Fallback name
+
+    let notificationHtml = `
+        <p id="notification-${senderId}">
+            Friend request from <strong>${senderName}</strong>
+            <button onclick="respondRequest('${senderId}', 'accepted')">Accept</button>
+            <button onclick="respondRequest('${senderId}', 'denied')">Decline</button>
+        </p>
+    `;
+
+    dropdown.innerHTML += notificationHtml;
+    updateBadge();
+}
+
+// Update the notification badge count
+function updateBadge() {
+    const badge = document.getElementById("notification-badge");
+    if (!badge) return;
+
+    const count = document.querySelectorAll("#notification-dropdown p").length;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? "block" : "none";
+}
+
+// WebSocket for friend requests
+if (socket && client_id) {
+    socket.on("friend_request_" + client_id, function(data) {
+        if (!data || !data.sender_id || !data.sender_username) {
+            console.error("❌ Invalid friend request data:", data);
+            return;
+        }
+
+        addNotification(`Friend request from ${data.sender_username}`, data.sender_id, data.sender_username);
+    });
+} else {
+    console.error("❌ WebSocket connection failed or client_id is missing.");
+}
+
+let currentSenderId = null; // Store sender ID
+
+// Open password modal when "Accept" is clicked
+function requestPasswordAndRespond(senderId) {
+    currentSenderId = senderId; // Save sender ID
+    let savedPassword = localStorage.getItem("friendRequestPassword");
+
+    if (savedPassword) {
+        document.getElementById("password-input").value = savedPassword; // Autofill password
+        document.getElementById("save-password").checked = true;
+    } else {
+        document.getElementById("password-input").value = "";
+    }
+
+    document.getElementById("password-modal").style.display = "block";
+}
+
+// Close the password modal
+function closeModal() {
+    document.getElementById("password-modal").style.display = "none";
+}
+
+// Submit the password and accept request
+function submitPassword() {
+    let password = document.getElementById("password-input").value;
+    let savePassword = document.getElementById("save-password").checked;
+
+    if (!password) {
+        alert("⚠️ Password is required.");
+        return;
+    }
+
+    if (savePassword) {
+        localStorage.setItem("friendRequestPassword", password);
+    }
+
+    closeModal();
+    respondRequest(currentSenderId, "accepted", password);
+}
+
+// Send friend request response with password
+function respondRequest(senderId, status, password) {
+    fetch("/accept_friend_request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            sender_id: senderId,
+            status: status,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById("notification-" + senderId)?.remove();
+            updateBadge();
+        } else {
+            alert("❌ Error: " + data.error);
+        }
+    })
+    .catch(err => console.error("⚠️ Fetch error:", err));
+}
+
+
+var friendsMap = {};  // Store friend data in a map to prevent overwriting
+
+function fetchFriends() {
+    fetch("/get_friends")
+        .then(response => response.json())
+        .then(data => {
+            //console.log("📢 Friends API Response:", data);
+            if (data.friends) {
+                updateFriendsUI(data.friends);
+            } else {
+                console.warn("⚠️ No friends data received.");
+            }
+        })
+        .catch(error => console.error("❌ Error fetching friends:", error))
+        .finally(() => {
+            setTimeout(fetchFriends, 5000); // Auto-refresh every 5 seconds
+        });
+}
+
+// Update the UI without removing WebSocket updates
+function updateFriendsUI(friends) {
+    let userId = "{{ session['client_id'] }}";
+    let friendsContainer = document.getElementById("friends-container");
+
+    friends.forEach(friend => {
+        let friendId = friend.id;
+        let existingFriend = document.getElementById(`friend-${friendId}`);
+
+        // Store friend data to avoid overwriting WebSocket updates
+        friendsMap[friendId] = friend;
+
+        if (existingFriend) {
+            let statusElement = existingFriend.querySelector(".status");
+            if (statusElement) {
+                let isOnline = friend.online ? "online" : "offline";
+                if (!statusElement.classList.contains(isOnline)) {
+                    statusElement.classList.remove("online", "offline");
+                    statusElement.classList.add(isOnline);
+                }
+            }
+        } else {
+            let friendCard = document.createElement("div");
+            friendCard.classList.add("friend-card");
+            friendCard.id = `friend-${friendId}`;
+
+            friendCard.innerHTML = `
+                <img src="${friend.profile_pic}" alt="Profile Picture" width="50">
+                <h4>${friend.username}</h4>
+                <p>Status: <span class="status ${friend.online ? 'online' : 'offline'}"></span></p>
+                <button onclick="messageFriend('${friend.id}')">💬 Message</button>
+            `;
+
+            friendsContainer.appendChild(friendCard);
+        }
+    });
+}
+
+socket.on("update_status", (data) => {
+    console.log("🔄 Online Status Update:", data);
+
+    if (!data || !data.id) {
+        console.warn("⚠️ Invalid status update:", data);
+        return;
+    }
+
+    // Ensure friendsMap is updated before trying to modify the UI
+    if (friendsMap[data.id]) {
+        friendsMap[data.id].online = data.online;
+    }
+
+    function updateStatus() {
+        let statusElement = document.querySelector(`[data-id="${data.id}"] .status`);
+
+        if (statusElement) {
+            statusElement.classList.remove("online", "offline");
+            statusElement.classList.add(data.online ? "online" : "offline");
+        } else {
+            //console.warn(`⚠️ Friend element with data-id="${data.id}" not found. Retrying...`);
+            setTimeout(updateStatus, 200); // Retry after 200ms
+        }
+    }
+
+    updateStatus();
+});
+
+
+// Start fetching friends when the page loads
+document.addEventListener("DOMContentLoaded", fetchFriends);
+
+// Simulate messaging a friend
+function messageFriend(friendId) {
+    alert(`Messaging user ${friendId}`);
+}
+</script>
+
+<!--    WORKERS    -->
+    <script>
+        function acceptWorkRequest(senderId) {
+    console.log("Accepting work request from:", senderId);
+    // Send accept work request to server
+    fetch('/accept_work_request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sender_id: senderId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Work request accepted:", data);
+        // Optionally, remove the notification from UI
+        document.getElementById(`notification-${senderId}-work request`)?.remove();
+    })
+    .catch(error => console.error('Error accepting work request:', error));
+}
+
+function declineWorkRequest(senderId) {
+    console.log("Declining work request from:", senderId);
+    // Send decline work request to server
+    fetch('/decline_work_request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sender_id: senderId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Work request declined:", data);
+        // Optionally, remove the notification from UI
+        document.getElementById(`notification-${senderId}-work request`)?.remove();
+    })
+    .catch(error => console.error('Error declining work request:', error));
+}
+
+    </script>
+<!--<div id="friends-list"></div> &lt;!&ndash; This will hold the friends list &ndash;&gt;-->
+
+</body>
+</html>

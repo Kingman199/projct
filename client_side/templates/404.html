@@ -25,16 +25,21 @@
 </head>
 <body>
     <h1>404 - Page Not Found</h1>
-    {% if session['projects'] %}
-        <p>The project "{{ error }}" does not exist.</p>
-        {% if error != "Error" %}
+
+    {% if error != "Hold on, buddy. Something is off... Please 'wait' for the updates" %}
+        {% if error == "Error" %}
+            <p>The project "{{ error }}" does not exist.</p>
             <a href="/projects">Go Back to Dashboard</a>
         {% else %}
+            <p>{{ error }}</p>
             <a href="/logout">Log in/sign up</a>
         {% endif %}
     {% else %}
         <p>{{ error }}</p>
         <a href="/logout">Log in/sign up</a>
     {% endif %}
+
+
+
 </body>
 </html>

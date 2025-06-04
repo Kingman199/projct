@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Request</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        #notification {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2e2e2e;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+
+    <style>
+    /* Popup Styling */
+    .popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+        z-index: 1000;
+    }
+    .popup-content {
+        text-align: center;
+    }
+    .close {
+        float: right;
+        cursor: pointer;
+        font-size: 20px;
+    }
+</style>
+</head>
+<body>
+
+<!-- Friend Request Pop-Up -->
+<div id="friend-popup" class="popup">
+    <div class="popup-content">
+        <span class="close" onclick="closeFriendRequestPopup()">&times;</span>
+        <h2>Send Friend Request</h2>
+        <input type="email" id="friend-email" placeholder="Enter friend's email">
+        <button onclick="sendFriendRequest()">Send Request</button>
+    </div>
+</div>
+
+    <div id="notification">New Friend Request!</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    var client_id = "{{ session['client_id'] }}";
+    var socket = io.connect("http://" + document.domain + ":" + location.port);
+
+    socket.on("friend_request_" + client_id, function(data) {
+        alert(data.message);  // Show pop-up for new friend request
+    });
+
+    socket.on("friend_request_accepted_" + client_id, function(data) {
+        alert(data.message);  // Show pop-up when request is accepted
+    });
+socket.on("connect", function() {
+    console.log("SocketIO connected, client ID:", client_id);
+});
+
+socket.on("friend_request_" + client_id, function(data) {
+    console.log("Received friend request notification:", data);
+    addNotification(data.message);
+});
+
+    // Connect to Socket.IO
+var socket = io.connect("http://" + document.domain + ":" + location.port);
+
+function sendFriendRequest() {
+    const email = document.getElementById("friend-email").value;
+
+    fetch("/send_friend_request", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ receiver_email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification("Friend request sent successfully!");
+            closeFriendRequestPopup();  // Close the pop-up after sending request
+
+            // Notify the receiver in real-time
+            socket.emit("new_friend_request", { receiver_email: email });
+        } else {
+            alert(data.error);
+        }
+    })
+    .catch(err => {
+        console.error("Error:", err);
+    });
+}
+
+function showNotification(message) {
+    const notification = document.getElementById("notification");
+    notification.textContent = message;
+    notification.style.display = "block";
+
+    // Hide the notification after 3 seconds
+    setTimeout(() => {
+        notification.style.display = "none";
+    }, 3000);
+}
+
+// Listen for real-time friend request notifications for this user
+socket.on("friend_request_" + client_id, function(data) {
+    showNotification(data.message);  // Show notification for new friend request
+});
+
+    function fetchPendingRequests() {
+    fetch("/pending_friend_requests")
+    .then(response => response.json())
+    .then(data => {
+        if (data.pending_requests.length > 0) {
+            data.pending_requests.forEach(req => {
+                showNotification(`Pending friend request from ${req.sender_username}`);
+            });
+        }
+    })
+    .catch(error => console.error("Error fetching pending requests:", error));
+}
+
+// Call this function when the page loads
+fetchPendingRequests();
+
+
+</script>
+
+
+    <script>
+    function openFriendRequestPopup() {
+        document.getElementById("friend-popup").style.display = "block";
+    }
+    function closeFriendRequestPopup() {
+        document.getElementById("friend-popup").style.display = "none";
+    }
+</script>
+
+
+
+</body>
+</html>

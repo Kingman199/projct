@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Workers</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem;
+            background-color: #f9fafb;
+            color: #111827;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .home-link {
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: bold;
+            font-size: 1rem;
+            background-color: #e0e7ff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .home-link:hover {
+            background-color: #c7d2fe;
+        }
+
+        .add-button {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        }
+
+        .add-button:hover {
+            background-color: #059669;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .email-link {
+            cursor: pointer;
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        .email-hidden {
+            color: #9ca3af;
+            font-style: italic;
+            cursor: pointer;
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 300px;
+            text-align: center;
+            animation: pop-in 0.3s ease-out;
+        }
+
+        @keyframes pop-in {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal input.error {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .modal button {
+            margin-top: 1rem;
+            padding: 10px;
+            width: 100%;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal button:hover {
+            background-color: #2563eb;
+        }
+        .hidden {
+          display: none;
+        }
+        .modal-overlay {
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('projects_view') }}" class="home-link">🏠 Home</a>
+        <button class="add-button">➕ Add Worker</button>
+    </div>
+
+    <h1>👨‍💼 My Workers</h1>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Project Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for worker in workers %}
+                    <tr>
+                        <td>{{ worker.username }}</td>
+                        <td>
+                            <span class="email-hidden" onclick="showPasswordModal(this, '{{ worker.email }}')">Click to reveal</span>
+                        </td>
+                        <td>{{ worker.role }}</td>
+                        <td>{{ worker.project_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PASSWORD MODAL -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>🔐 Enter Password</h2>
+            <input type="password" id="passwordInput" placeholder="Your password..." />
+            <button onclick="checkPassword()">Reveal Email</button>
+        </div>
+    </div>
+
+        <!-- ADD WORKER MODAL -->
+    <div class="modal-overlay" id="addWorkerOverlay">
+        <div class="modal">
+            <h2>👤 Add New Worker</h2>
+            <input type="email" id="workerEmailInput" placeholder="Enter worker's email..." />
+            <button onclick="submitWorker()">Add Worker</button>
+        </div>
+    </div>
+
+
+    <script>
+        const sessionPassword = "{{ session['password'] }}";  // dynamically injected
+        let currentTarget = null;
+        let currentEmail = "";
+
+        function showPasswordModal(element, email) {
+            currentTarget = element;
+            currentEmail = email;
+            document.getElementById("modalOverlay").style.display = "flex";
+            setTimeout(() => {
+                document.getElementById("passwordInput").focus();
+            }, 100);
+        }
+
+        function checkPassword() {
+            const inputField = document.getElementById("passwordInput");
+            const input = inputField.value;
+
+            if (input === sessionPassword) {
+                revealEmail();
+                closeModal();
+            } else {
+                inputField.classList.add("error");
+                setTimeout(() => {
+                    inputField.classList.remove("error");
+                }, 500);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById("passwordInput").value = "";
+            document.getElementById("modalOverlay").style.display = "none";
+        }
+
+        function revealEmail() {
+            if (!currentTarget) return;
+            currentTarget.classList.remove("email-hidden");
+            currentTarget.classList.add("email-link");
+            currentTarget.textContent = currentEmail;
+
+            setTimeout(() => {
+                currentTarget.textContent = "Click to reveal";
+                currentTarget.classList.add("email-hidden");
+                currentTarget.classList.remove("email-link");
+                currentTarget = null;
+                currentEmail = "";
+            }, 10000);
+        }
+
+        // Keyboard shortcuts: Enter to submit, Esc to close
+        document.addEventListener("keydown", function (e) {
+            const overlay = document.getElementById("modalOverlay");
+            if (overlay.style.display === "flex") {
+                if (e.key === "Enter") {
+                    checkPassword();
+                } else if (e.key === "Escape") {
+                    closeModal();
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.querySelector('.add-button').addEventListener('click', () => {
+            document.getElementById('addWorkerOverlay').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById("workerEmailInput").focus();
+            }, 100);
+        });
+
+        const workerContainer = document.getElementById('addWorkerContainer');
+        const emailInput = document.getElementById('workerEmailInput');
+
+        // Show the add worker container
+        function openAddWorker() {
+            workerContainer.classList.remove('hidden');
+            emailInput.focus();
+        }
+
+        // Hide the add worker container
+        function closeAddWorker() {
+            workerContainer.classList.add('hidden');
+            emailInput.value = '';
+            emailInput.classList.remove('error');
+        }
+
+        // Handle global key presses
+        document.addEventListener('keydown', (e) => {
+            if (workerContainer.classList.contains('hidden')) return;
+
+            if (e.key === 'Escape') {
+                closeAddWorker();
+            } else if (e.key === 'Enter') {
+                submitWorker();
+            }
+        });
+
+        function submitWorker() {
+            const email = emailInput.value.trim();
+
+            if (!email || !email.includes("@")) {
+                emailInput.classList.add("error");
+                setTimeout(() => emailInput.classList.remove("error"), 500);
+                return;
+            }
+
+            fetch("/add_worker", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email })
+            })
+            .then(res => {
+                if (res.ok) {
+                    location.reload();
+                } else {
+                    emailInput.classList.add("error");
+                    setTimeout(() => emailInput.classList.remove("error"), 500);
+                }
+            });
+        }
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                submitWorker();
+            }
+        });
+
+    </script>
+</body>
+</html>
