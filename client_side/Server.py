@@ -1,10 +1,10 @@
-import threading, time, mimetypes
+import threading, mimetypes, uuid, json, base64, re
 from Client import *
-from flask import Flask, jsonify, request, render_template, session, redirect, url_for, flash, send_from_directory
-import uuid, json, base64, re
+from flask import Flask, jsonify, request, render_template, session, redirect, url_for, send_file
 from ConnectionWithDatabase import ConnectionWithDatabase
 from flask_session import Session
-from installer import main
+from datetime import datetime
+from typing import Optional
 
 # region Handle Friend Requests in Real-Time
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -23,14 +23,12 @@ client = None
 
 # region Session
 app.config["SECRET_KEY"] = "supersecretkey"  # Must be set when SESSION_USE_SIGNER is True
-app.config["SESSION_TYPE"] = "filesystem"  # Change to 'redis' or 'sqlalchemy' for better isolation
+app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_DIR"] = "./flask_session_data"
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_USE_SIGNER"] = True
 Session(app)
-
-
-from flask import send_file
+# endregion
 
 @app.route('/static/js/Tasks/DueDate_Task.js')
 def serve_due_date_task():
@@ -43,7 +41,7 @@ def role_required(*allowed_roles):
             session_id = session.get("session_id")
             client = clients.get(session_id)["client"]
             if not client or getattr(client, 'role', None) not in allowed_roles:
-                return redirect(url_for('unauthorized'))  # Or some error page
+                return redirect(url_for('404'))  # Or some error page
             return f(*args, **kwargs)
         return decorated_function
     return wrapper
@@ -64,10 +62,7 @@ def session_check():
         else:
             session["time_since_login"] = current_time  # reset on activity
 
-
 # endregion
-
-
 
 # Initialize Flask-SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # Keep Flask as primary
@@ -154,11 +149,8 @@ def login():
                 new_client = Role(role)
                 clients[temp_session_id]["client"] = new_client
                 session["time_since_login"] = new_client.time_since_login
-
                 clients_list.append(username)
-
                 return redirect(url_for('projects_view', session_id=temp_session_id))
-
             else:
                 connection.close()
                 return render_template('login.html', error="Invalid username or password.")
@@ -188,22 +180,21 @@ def Role(role):
 
 @app.route('/projects')
 def projects_view():
+    try:
+        if "session_id" not in session or "client_id" not in session:
+            return redirect(url_for("login"))  # Redirect to login if session is missing
 
 
-    # Pull session_id from URL first
-    session_id = request.args.get("session_id") or session.get("session_id")
+        # Pull session_id from URL first
+        session_id = request.args.get("session_id") or session.get("session_id")
 
-    # Ensure user is logged in
-    if "session_id" not in session or "client_id" not in session:
-        return redirect(url_for("login"))  # Redirect to login if session is missing
-
-    client_id = clients[session_id]["client"].client_id
-    # Ensure session_id exists in clients
-    if session_id not in clients:
-        return "Error: Session not found. Please log in again.", 401  # Unauthorized
-    connection = clients[session_id]["connection"]
-    connection.send(f"GIVE PROJECTS#{client_id}")
-    proj = connection.receive()
+        client_id = clients[session_id]["client"].client_id
+        connection = clients[session_id]["connection"]
+        connection.send(f"GIVE PROJECTS#{client_id}")
+        proj = connection.receive()
+    except Exception:
+        return render_template("404.html",
+                               error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
     if "ENDED" in proj:
         return render_template("404.html", error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
     print("Raw received data:", proj)
@@ -332,6 +323,7 @@ def delete_project():
 @app.route("/project/<string:project_name>")
 def project_dashboard(project_name):
     global sprints_data
+
     # Pull session_id from URL first
     session_id = request.args.get("session_id") or session.get("session_id")
     if not session_id:
@@ -358,7 +350,6 @@ def project_dashboard(project_name):
             # Get all sprints for the project
             sprints_data = get_sprints(project_id)
             session["sprints"] = sprints_data
-            sprints_data = sprints_data[1:] if len(sprints_data) > 1 else sprints_data
 
             # Ensure sprints is a list (Jinja requires an iterable)
             if isinstance(sprints_data, dict):
@@ -386,7 +377,6 @@ def project_dashboard(project_name):
 
 
 # region --------------- SPRINTS ---------------
-
 
 def get_sprints(project_id):
     clients[session["session_id"]]["connection"].send(f"GIVE {session['client_id']}.{project_id}#sprints")
@@ -448,23 +438,26 @@ def update_sprint():
             print(f"Updated Sprint {sprint_id} color to {data['SprintColor']}")
 
         if 'SprintName' in data:
-            sprint["SprintName"] = data["SprintName"]
-            updated_fields["SprintName"] = data["SprintName"]
-            print(f"Updated Sprint {sprint_id} name to {data['SprintName']}")
+            if len(data["SprintName"]) > 2:
+                sprint["SprintName"] = data["SprintName"]
+                updated_fields["SprintName"] = data["SprintName"]
+                print(f"Updated Sprint {sprint_id} name to {data['SprintName']}")
+            else:
+                sprint["SprintName"] = "too short"
 
         if updated_fields:
             # Ensure connection object exists and send update
-            clients[session["session_id"]]["connection"].send(f"UPDATE_SPRINT#{sprint_id}${json.dumps(sprint)}")
+                    clients[session["session_id"]]["connection"].send(f"UPDATE_SPRINT#{sprint_id}${json.dumps(sprint)}")
 
         # Restore the deep copied tasks list
         sprint["Tasks"] = tasks
+        session["tasks"] = tasks
         # TODO: Add the sockeio.emit for update sprint
         return jsonify([sprint])  # Return updated sprint in expected format
 
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 
 # TODO: Add the sockeio.emit for adding sprint
@@ -525,9 +518,9 @@ def delete_sprint(sprint_id):
         project_id = session.get("project_id")
         print(f"project_id: {project_id}")
         session_id = session.get("session_id")
-
+        connection = clients[session_id]["connection"]
         if session_id in clients:
-            clients[session_id].send(f"DEL_SPRINT#{project_id}.{sprint_id}")
+            connection.send(f"DEL_SPRINT#{project_id}.{sprint_id}")
 
         return jsonify({"success": True, "deletedSprintId": sprint_id}), 200
     except Exception as e:
@@ -550,13 +543,13 @@ def share_project():
 
     project_id = data.get('project_id')
     friend_id = data.get('friend_id')
-
+    client =  clients[session_id]["client"]
     # Validate required parameters.
     if not project_id or not friend_id:
         return jsonify(success=False, error="Missing project_id or friend_id."), 400
 
     # Retrieve the current user's friends list from the session.
-    friends = session.get('friends', [])
+    friends = session.get('friends') or client.friends or []
     # Check if the friend_id exists in the session's friends list.
     friend_found = any(str(friend['id']) == str(friend_id) for friend in friends)
     if not friend_found:
@@ -617,9 +610,23 @@ def add_task():
     sprint_id = new_task.get("SprintID")
     task_name = new_task.get("TaskName", "Untitled Task")
     username = session["username"]
+    connection = clients[session["session_id"]]["connection"]
 
-    print(f"Received Sprint ID: {sprint_id}")
-    print(f"Current Sprints in Session: {session.get('sprints', [])}")
+    sprints_data = session.get("sprints", [])
+    if isinstance(sprints_data, str):
+        try:
+            sprints_data = json.loads(sprints_data)
+        except json.JSONDecodeError:
+            sprints_data = []
+    # Find the sprint matching the SprintID
+    matching_sprint = next(
+        (s for s in session.get("sprints", []) if str(s["SprintID"]) == str(sprint_id)),
+        None
+    )
+    if matching_sprint:
+        session["tasks"] = matching_sprint.get("Tasks", [])
+    else:
+        session["tasks"] = []  # fallback
 
     sprint_name = ""
     if session["tasks"]:
@@ -654,10 +661,8 @@ def add_task():
         if not client_id or not project_id:
             raise ValueError("Missing client_id or project_id in session.")
 
-
-
-        clients[session["session_id"]]["connection"].send(f"ADD_TASK#{client_id}.{project_id}.{sprint_id}.{task_id}${task_name}")
-        response = clients[session["session_id"]]["connection"].receive()
+        connection.send(f"ADD_TASK#{client_id}.{project_id}.{sprint_id}.{task_id}${task_name}")
+        response = connection.receive()
         print(f"Received response: {response}")
 
     except Exception as e:
@@ -676,108 +681,115 @@ def add_task():
 
 @app.route("/update_task", methods=["POST"])
 def update_task():
-    update_data = request.json
-    task_id = update_data.get("ID")
-    sprint_id = update_data.get("SprintID")
-    task_name = update_data.get("TaskName", "").strip()
-    # status = update_data.get("Status")
-    # priority = update_data.get("Priority")
-    # due_date = update_data.get("DueDate")
-    project_id = update_data.get("project_id") or session.get("project_id")
-    username = session.get("username")
-    if not task_id or not sprint_id or not project_id:
-        return jsonify({"status": "error", "message": "Task ID, Sprint ID, and Project ID are required"}), 400
+    try:
+        session_id = session["session_id"]
+        connection = clients[session_id]["connection"]
+        if not connection.connected:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
 
-    print("Update data received:", update_data)
-    print("Session sprints:", session.get("sprints", []))
+        update_data = request.json
+        task_id = update_data.get("ID")
+        sprint_id = update_data.get("SprintID")
+        task_name = update_data.get("TaskName", "").strip()
 
-    sprint_name = ""
-    task = None
-    # region Locate the task
-    for sprint in session.get("sprints", []):
-        if int(sprint.get("SprintID")) == int(sprint_id):
-            sprint_name = sprint["SprintName"]
-            for t in sprint.get("Tasks", []):
-                if int(t.get("TaskID")) == int(task_id):
-                    task = t
-                    break
+        project_id = update_data.get("project_id") or session.get("project_id")
+        username = session.get("username")
+        if not task_id or not sprint_id or not project_id:
+            return jsonify({"status": "error", "message": "Task ID, Sprint ID, and Project ID are required"}), 400
 
-    if not task:
-        return jsonify({"status": "error", "message": "Task not found"}), 404
-    # endregion
+        print("Update data received:", update_data)
+        print("Session sprints:", session.get("sprints", []))
 
-    # region Updating
-    # Track changes for logging
-    change_log = []
+        sprint_name = ""
+        task = None
+        # region Locate the task
+        for sprint in session.get("sprints", []):
+            if int(sprint.get("SprintID")) == int(sprint_id):
+                sprint_name = sprint["SprintName"]
+                for t in sprint.get("Tasks", []):
+                    if int(t.get("TaskID")) == int(task_id):
+                        task = t
+                        break
 
-    # Validate and update task name
-    if task_name:
-        if task["TaskName"] != task_name:
-            change_log.append(f"Task name changed from '{task['TaskName']}' to '{task_name}'")
-            task["TaskName"] = task_name
+        if not task:
+            return jsonify({"status": "error", "message": "Task not found"}), 404
+        # endregion
 
-    # Validate and update status
-    # if status and task["Status"] != status:
-    #     change_log.append(f"Status changed from '{task['Status']}' to '{status}'")
-    #     task["Status"] = status
-    #     if "StatusColor" in update_data:  # Ensure frontend provides correct status color
-    #         task["StatusColor"] = update_data["StatusColor"]
-    # Validate and update priority
-    # if priority and task["Priority"] != priority:
-    #     change_log.append(f"Priority changed from '{task['Priority']}' to '{priority}'")
-    #     task["Priority"] = priority
-    #     if "PriorityColor" in update_data:  # Ensure frontend provides correct priority color
-    #         task["PriorityColor"] = update_data["PriorityColor"]
+        # region Updating
+        # Track changes for logging
+        change_log = []
 
-    # Validate and update due date
-    # if due_date and task.get("DueDate") != due_date:
-    #     change_log.append(f"Due date changed from '{task.get('DueDate', 'None')}' to '{due_date}'")
-    #     task["DueDate"] = due_date
-    task = updatePlus(task, update_data)
-    # endregion
+        # Validate and update task name
+        if task_name:
+            if task["TaskName"] != task_name:
+                change_log.append(f"Task name changed from '{task['TaskName']}' to '{task_name}'")
+                task["TaskName"] = task_name
 
-    socketio.emit("task_updated", {
-        "project_id": project_id,
-        "sprint_id": sprint_id,
-        "updated_task": task,
-        "changes": change_log,
-        "updated_by": username,
-        "sprint_name": sprint_name
-    }, room=f"project_{project_id}")
+        # Validate and update status
+        # if status and task["Status"] != status:
+        #     change_log.append(f"Status changed from '{task['Status']}' to '{status}'")
+        #     task["Status"] = status
+        #     if "StatusColor" in update_data:  # Ensure frontend provides correct status color
+        #         task["StatusColor"] = update_data["StatusColor"]
+        # Validate and update priority
+        # if priority and task["Priority"] != priority:
+        #     change_log.append(f"Priority changed from '{task['Priority']}' to '{priority}'")
+        #     task["Priority"] = priority
+        #     if "PriorityColor" in update_data:  # Ensure frontend provides correct priority color
+        #         task["PriorityColor"] = update_data["PriorityColor"]
 
-    print(f"\n\nUpdated Task: {task}\n\n")
+        # Validate and update due date
+        # if due_date and task.get("DueDate") != due_date:
+        #     change_log.append(f"Due date changed from '{task.get('DueDate', 'None')}' to '{due_date}'")
+        #     task["DueDate"] = due_date
+        new_due_date_str = update_data.get("DueDate")
+        print(type(new_due_date_str))
+        if new_due_date_str:
+            task = updatePlus(task, update_data)
+        # endregion
 
-    # Update the session with the modified task
-    for sprint in session.get("sprints", []):
-        if int(sprint["SprintID"]) == int(sprint_id):
-            for i, task_ in enumerate(sprint["Tasks"]):
-                if int(task_["TaskID"]) == int(task["TaskID"]):
-                    sprint["Tasks"][i] = task  # Directly update task
-                    session.modified = True
-                    break
+        socketio.emit("task_updated", {
+            "project_id": project_id,
+            "sprint_id": sprint_id,
+            "updated_task": task,
+            "changes": change_log,
+            "updated_by": username,
+            "sprint_name": sprint_name
+        }, room=f"project_{project_id}")
 
-    print("Change log:", change_log)
+        print(f"\n\nUpdated Task: {task}\n\n")
 
-    # Print updated sprint tasks
-    for sprint in session.get("sprints", []):
-        print(f"Tasks in Sprint {sprint['SprintID']}: {sprint.get('Tasks', [])}")
+        # Update the session with the modified task
+        for sprint in session.get("sprints", []):
+            if int(sprint["SprintID"]) == int(sprint_id):
+                for i, task_ in enumerate(sprint["Tasks"]):
+                    if int(task_["TaskID"]) == int(task["TaskID"]):
+                        sprint["Tasks"][i] = task  # Directly update task
+                        session.modified = True
+                        break
 
-    # TODO: if the date is closed to the DueDate, the system would add a notification to the user about it.
+        print("Change log:", change_log)
 
-    # Notify the client through WebSocket
-    if session.get("session_id") in clients:
-        try:
-            clients[session["session_id"]]["connection"].send(f"UPDATE_TASK${task}")
-            response = clients[session["session_id"]]["connection"].receive()  # No timeout parameter
-            print("WebSocket response:", response)
-        except Exception as e:
-            print(f"WebSocket error: {e}")
+        # Print updated sprint tasks
+        for sprint in session.get("sprints", []):
+            print(f"Tasks in Sprint {sprint['SprintID']}: {sprint.get('Tasks', [])}")
 
-    return jsonify({"status": "success", "updated_task": task, "changes": change_log})
+        # TODO: if the date is closed to the DueDate, the system would add a notification to the user about it.
 
+        # Notify the client through WebSocket
+        if session.get("session_id") in clients:
+            try:
+                clients[session["session_id"]]["connection"].send(f"UPDATE_TASK${task}")
+                response = clients[session["session_id"]]["connection"].receive()  # No timeout parameter
+                print("WebSocket response:", response)
+            except Exception as e:
+                print(f"WebSocket error: {e}")
 
-from datetime import datetime
-from typing import Optional
+        return jsonify({"status": "success", "updated_task": task, "changes": change_log})
+    except Exception:
+            return render_template("404.html", error="You made a mistake, buddy"), 404
+
 def updatePlus(task, update_data):
     today = datetime.today()
     new_due_date_str = update_data.get("DueDate")
@@ -821,7 +833,9 @@ def updatePlus(task, update_data):
     return task
 
 # region   Extra functions
-def parse_due_date(due_str: str) -> Optional[datetime]:
+def parse_due_date(due_str: Optional[str]) -> Optional[datetime]:
+    if not due_str:
+        return None
     try:
         return datetime.strptime(due_str.strip(), "%d/%m/%Y")
     except (ValueError, TypeError):
@@ -1130,18 +1144,6 @@ def get_notifications():
 
 
 #region FRIENDS
-# from flask_mail import Mail, Message
-# active_users = {}  # Stores online users: {client_id: socket_session_id}
-
-# Flask-Mail Configuration
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Use your SMTP server
-# app.config['MAIL_PORT'] = 587
-# app.config['MAIL_USE_TLS'] = True
-# app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Replace with your email
-# app.config['MAIL_PASSWORD'] = 'your-password'  # Use environment variables instead of hardcoding!
-
-# mail = Mail(app)
-
 # Store active users (Online users: {client_id: socket_session_id})
 active_users = {}
 
@@ -1156,20 +1158,30 @@ def get_friends():
     if "client_id" not in session:
         return render_template("404.html",
                                error="Hold on, buddy. Something is off...\nPlease wait for the updates"), 404
-
-    client_id = clients[session_id]["client"].client_id
+    try:
+        client_id = clients[session_id]["client"].client_id
+    except Exception:
+        return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
     connection = clients.get(session_id)["connection"]
     if not connection:
         return render_template("404.html", error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
 
     payload = json.dumps({"client_id": client_id, "active_users": list(connected_users.keys())})
-
-    connection.send(f"GET_FRIENDS#{payload}")
-    response = connection.receive()
-    if "ENDED" in response:
-        return render_template("404.html", error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
-    if not response:
+    if len(list(connected_users.keys())) > 1:
+        connection.send(f"GET_FRIENDS#{payload}")
+        response = connection.receive()
+        if "ENDED" in response:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
+    else:
         return jsonify({"friends": []})
+    # try:
+    #     if not session["friends"]:
+    #
+    #         if not response:
+    #
+    # except
 
     try:
         friends_data = json.loads(response)
@@ -1185,6 +1197,7 @@ def get_friends():
             friend["online"] = str(friend["id"]) in connected_users
 
         session["friends"] = friends_list
+        clients[session_id]["client"].friends = friends_list
         return jsonify({"friends": [friend for friend in friends_list if friend["id"] != client_id]})
 
     except json.JSONDecodeError:
@@ -1421,23 +1434,26 @@ project_rooms = []
 join_project = []
 @socketio.on("join_project")
 def on_join_project(data):
-    global project_rooms
-    project_id = data.get("project_id")
-    room = f"project_{project_id}"
+    try:
+        global project_rooms
+        project_id = data.get("project_id")
+        room = f"project_{project_id}"
 
-    join_room(room)  # Joins the Socket.IO room
-    print(f"Client {request.sid} joined {room}")
-    if not project_rooms:
-        project_rooms = [{"project_id": project_id, "users": [f"{session['client_id']}"]}]
-    else:
-        for project in project_rooms:
-            if project_id in project["project_id"]:
-                if not session['client_id'] in project['users']:
-                    project['users'].append(session['client_id'])
-                    print(f"{session['username']} has joined the room!")
-            # for i in project["users"]:
+        join_room(room)  # Joins the Socket.IO room
+        print(f"Client {request.sid} joined {room}")
+        if not project_rooms:
+            project_rooms = [{"project_id": project_id, "users": [f"{session['client_id']}"]}]
+        else:
+            for project in project_rooms:
+                if project_id in project["project_id"]:
+                    if not session['client_id'] in project['users']:
+                        project['users'].append(session['client_id'])
+                        print(f"{session['username']} has joined the room!")
+                # for i in project["users"]:
 
-    emit("joined_room", {"room": room})  # <-- emit ONLY to the sender!
+        emit("joined_room", {"room": room})  # <-- emit ONLY to the sender!
+    except Exception:
+            return render_template("404.html", error="You made a mistake, buddy"), 404
 
 
 @socketio.on("leave_project")
@@ -1680,7 +1696,7 @@ def logout():
         'username', 'password', 'session_id', 'client_id',
         'notification', 'time_since_login', 'friends', 'tasks',
         'project_id', 'projects', 'shared_projects', 'role', 'pic',
-        'sprints', 'email', 'workers'
+        'sprints', 'email', 'workers', 'project_id', 'task_id'
     ]
     for key in keys_to_clear:
         session.pop(key, None)
@@ -1689,31 +1705,75 @@ def logout():
     return redirect(url_for('login'))
 @app.route('/profile')
 def profile():
-    return render_template('profile.html')
+    try:
+        session_id = session["session_id"]
+        connection = clients[session_id]["connection"]
+        if not connection.connected:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
+        return render_template('profile.html')
+    except Exception:
+            return render_template("404.html", error="You made a mistake, buddy"), 404
+@app.route('/listToDo')
+def listToDo():
+    try:
+        session_id = session["session_id"]
+        connection = clients[session_id]["connection"]
+        if not connection.connected:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
+        return render_template('listToDo.html')
+    except Exception:
+            return render_template("404.html", error="You made a mistake, buddy"), 404
+
+@app.route('/404')
+def page_404():
+    return render_template('404.html')
+
+@app.route('/become_manager')
+def become_manager():
+    return render_template('404.html', Error="Error")
+
 @app.route('/settings')
 def settings():
-    return render_template('settings.html')
+    try:
+        session_id = session["session_id"]
+        connection = clients[session_id]["connection"]
+        if not connection.connected:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
+        return render_template('settings.html')
+    except Exception:
+            return render_template("404.html", error="You made a mistake, buddy"), 404
 @app.route('/upload-avatar', methods=['POST'])
 def upload_avatar():
-    data_url = request.form['croppedImage']
-    if not data_url:
-        return "No image data", 400
+    try:
+        session_id = session["session_id"]
+        connection = clients[session_id]["connection"]
+        if not connection.connected:
+            return render_template("404.html",
+                                   error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
 
-    # Extract base64 part from data URL
-    match = re.search(r'^data:image/(png|jpeg);base64,(.*)$', data_url)
-    if not match:
-        return "Invalid image format", 400
+        data_url = request.form['croppedImage']
+        if not data_url:
+            return "No image data", 400
 
-    image_data = base64.b64decode(match.group(2))
-    user_dir = f"static/profile_pics/{session['username']}"
-    # Create the directory if it doesn't exist
-    os.makedirs(user_dir, exist_ok=True)
-    with open(f"{user_dir}/avatar.png", 'wb') as f:
-        f.write(image_data)  # replace image_data with your actual image bytes
+        # Extract base64 part from data URL
+        match = re.search(r'^data:image/(png|jpeg);base64,(.*)$', data_url)
+        if not match:
+            return "Invalid image format", 400
 
-    session_id = session["session_id"]
-    clients[session_id]["connection"].send(f"UPDATE_PROFILE#{session['client_id']}.{user_dir}/avatar.png")
-    return redirect('/profile')
+        image_data = base64.b64decode(match.group(2))
+        user_dir = f"static/profile_pics/{session['username']}"
+        # Create the directory if it doesn't exist
+        os.makedirs(user_dir, exist_ok=True)
+        with open(f"{user_dir}/avatar.png", 'wb') as f:
+            f.write(image_data)  # replace image_data with your actual image bytes
+
+        connection.send(f"UPDATE_PROFILE#{session['client_id']}.{user_dir}/avatar.png")
+        return redirect('/profile')
+    except Exception:
+        return render_template("404.html", error="You made a mistake, buddy"), 404
 
 
 def start():

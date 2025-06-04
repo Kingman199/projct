@@ -7,7 +7,14 @@ packages = [
     'flask_socketio',
     'flask',
     'pycryptodome',
-    'cryptography'
+    'cryptography',
+    'datetime',
+    'typing',
+    'mimetypes',
+    'uuid',
+    'base64',
+    're',
+    'functools'
 ]
 
 
