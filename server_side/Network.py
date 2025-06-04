@@ -31,10 +31,14 @@ class Network:
         enc_aes_key = client_socket.recv(1024)
         aes_key = asym.cipher_rsa.decrypt(enc_aes_key)
         print("AES KEY=", aes_key)
+
+        # Create a new Encryption instance for this client
+        enc = Encryption()
+        enc.setKey(aes_key)
         self.enc.setKey(aes_key)
+        return enc
     # endregion
     def run_server(self):
-
         """Main loop to handle multiple clients using `select`."""
         self.sockets_list = [self.server_socket]
 
@@ -44,11 +48,17 @@ class Network:
             for sock in read_sockets:
                 if sock == self.server_socket:
                     client_socket, client_address = self.server_socket.accept()
-
-                    self.key_exchange(client_socket)
+                    # KEY EXCHANGE
+                    enc = self.key_exchange(client_socket)
                     client_socket.setblocking(False)
+
                     self.sockets_list.append(client_socket)
-                    self.clients[client_socket] = client_address
+
+                    self.clients[client_socket] = {
+                        "address": client_address,
+                        "key": enc.key,
+                        "enc": enc
+                    }
                     print(f"New connection from {client_address}")
                 else:
                     try:
@@ -71,7 +81,7 @@ class Network:
         import json
         """Process client requests for multiple types of commands."""
         # try:
-            # region Clients
+        # region Clients
         if message.startswith("SIGNIN"):
             username, password = message.split(' ', 1)[1].split('#')
 
@@ -81,7 +91,11 @@ class Network:
             if success:
                 response = f"User exists. ID:{client_id};ROLE:{role}"
                 self.send(client_socket, response)
-                self.clients[client_socket] = username
+
+                if client_socket in self.clients:
+                    self.clients[client_socket].update({
+                        "name": username,
+                    })
             else:
                 self.send(client_socket, "Username not found")
 
@@ -107,15 +121,14 @@ class Network:
             #     self.send(client_socket, "Registration failed.")
         # endregion
 
-
         # region Friends
         elif message.startswith("ADD_FRIEND_REQUEST"):
             items = message.split('#', 1)[1].split('.', 1)
-            sender_id = int(items[0])  # ✅ Correct conversion to int
-            receiver_id = int(items[1])  # ✅ Should be an int, not an email
+            sender_id = int(items[0])
+            receiver_id = int(items[1])
             print(f"Processing friend request from {sender_id} to {receiver_id}")
             email_data = self.dataBase.tables["clients"].getUserEmailById(receiver_id)
-            success = self.dataBase.tables["clients"].addFriendRequest(sender_id, email_data)  # 🛠️ Ensure function expects IDs
+            success = self.dataBase.tables["clients"].addFriendRequest(sender_id, email_data)
 
             if success:
                 self.send(client_socket, "Success")
@@ -123,7 +136,7 @@ class Network:
                 self.send(client_socket, "Failed to send friend request")
 
         elif message.startswith("GET_USER_EMAIL"):
-            receiver_id = message.split("#")[1].strip()
+            receiver_id = message.split("#",1)[1].strip()
             email_data = self.dataBase.tables["clients"].getUserEmailById(int(receiver_id))
             if email_data:
                 self.send(client_socket, f"{email_data}")  # Send back user ID and username
@@ -131,7 +144,7 @@ class Network:
                 self.send(client_socket, "User not found")
 
         elif message.startswith("GET_USER_BY_EMAIL"):
-            receiver_email = message.split("#")[1].strip()
+            receiver_email = message.split("#", 1)[1].strip()
             print(f"Looking up user by email: {receiver_email}")
 
             # Query the database for the user’s ID based on email
@@ -142,7 +155,6 @@ class Network:
                 self.send(client_socket, f"{user_id}#{username}")  # Send back user ID and username
             else:
                 self.send(client_socket, "User not found")
-
 
         elif message.startswith("GET_PENDING_REQUESTS"):
             import json
@@ -166,17 +178,16 @@ class Network:
 
         elif message.startswith("CONFIRM_FRIENDSHIP"):
             sender_id, receiver_id = message.split("#")[1].split(".", 1)
-            # print(f"🛠 DEBUG: sender_id={sender_id}, receiver_id={receiver_id}")
             try:
                 success = self.dataBase.tables["clients"].addFriend(int(sender_id), int(receiver_id))
                 if success:
-                    print(f"✅ Friendship added: {sender_id} ↔ {receiver_id}")
+                    print(f"Friendship added: {sender_id} ↔ {receiver_id}")
                     self.send(client_socket, "Friendship confirmed")
                 else:
                     print(f"Failed to confirm friendship between {sender_id} and {receiver_id}")
                     self.send(client_socket, "Failed to confirm friendship")
             except Exception:
-                print("❌ ERROR: sender_id is undefined!")
+                print("ERROR: sender_id is undefined!")
                 self.send(client_socket, "Failed to confirm friendship")
 
         elif message.startswith("GET_FRIENDS"):
@@ -191,12 +202,7 @@ class Network:
             friends_data = self.dataBase.tables["clients"].listFriends(receiver_id, active_users)
             print(friends_data)
             self.send(client_socket, json.dumps(friends_data))  # Send back as JSON
-
-            # except (json.JSONDecodeError, KeyError, ValueError) as e:
-            #     print(f"❌ JSON Parsing Error: {e}")
-            #     self.send(json.dumps({"error": "Invalid request format"}))
         # endregion
-
 
         # region Workers
         elif message.startswith("GET_WORKERS"):
@@ -208,18 +214,15 @@ class Network:
         elif message.startswith("SEND_REQUEST_WORKER"):
             import json
             data = message.split("#", 1)[1] if "#" in message else "{}"
-            manager_id, worker_email = data.split('.')
+            manager_id, worker_email = data.split('.', 1)
             # w_id, w_username = self.dataBase.tables["clients"].getUserByEmail(worker_email)
             self.dataBase.tables["clients"].addWorkerRequest(int(manager_id), worker_email)
         elif message.startswith("ADD_WORKER"):
             import json
             data = message.split("#", 1)[1] if "#" in message else "{}"
-            manager_id, worker_email = data.split('.')
-            w_id, w_username = self.dataBase.tables["clients"].getUserByEmail(worker_email)
+            manager_id, worker_email = data.split('.', 1)
+            # w_id, w_username = self.dataBase.tables["clients"].getUserByEmail(worker_email)
             self.dataBase.tables["clients"].addWorkerRequest(int(manager_id), worker_email)
-
-
-
         # endregion
 
         # region Projects
@@ -235,16 +238,15 @@ class Network:
 
         elif message.startswith("ADD_ITEM"):
             data = message.lower().split('#', 1)
-            id = data[1]
+            id = int(data[1])
             print(id)
-            projects = self.dataBase.tables["projects"].addProject("", "", int(id))
+            projects = self.dataBase.tables["projects"].addProject("New Project", "Describe your project here.", id)
             self.send(client_socket, f"projects#{projects}")
 
         elif message.startswith("DUPLICATE_ITEM"):
             # data = message.lower().split('#', 1)
             ids = message.split('#', 1)[1].split('.', 1)
             print(ids)
-            print("\\n\n\n")
             for _ in ids:
                 _ = int(_)
 
@@ -289,7 +291,6 @@ class Network:
                         raise KeyError(subject)
 
                     self.dataBase.tables[subject].update_project(project_id, name, desc, client_id)
-                    self.dataBase.tables["client_project_tasks"].update(client_id, project_id, project_id)
 
                 elif subject == "tasks":
                     task_details = ast.literal_eval(changes)  # Safer dictionary parsing
@@ -340,9 +341,6 @@ class Network:
             name = items[1]
             list_ = self.dataBase.read_list_by_ID(c_id, p_id, name)
             self.send(client_socket, f"{list_}")
-            # else:
-            #     self.send(f"User {c_id} in project: {p_id} has 1 task")
-            # print(f"c_id: {c_id}\np_id: {p_id}\nname: {name}")
 
         #region Sprints
 
@@ -353,15 +351,11 @@ class Network:
 
             data = items[1].split("$", 1)
 
-            ids = data[0].split('.', 1)
-            item = data[1].strip("{}").strip()
-            # sprint_id = int(ids[0])
-
-            task_details = json.loads(data[1])
-            print(task_details)
-            ID = int(task_details.get("SprintID", 0))  # Convert to integer
-            SprintName = task_details.get("SprintName", "")
-            SprintColor = task_details.get("SprintColor", "")
+            sprint_details = json.loads(data[1])
+            print(sprint_details)
+            ID = int(sprint_details.get("SprintID", 0))  # Convert to integer
+            SprintName = sprint_details.get("SprintName", "")
+            SprintColor = sprint_details.get("SprintColor", "")
 
             list_items = [
                 ID, SprintName, SprintColor
@@ -399,7 +393,7 @@ class Network:
         #TODO: add delete sprint
         elif message.startswith("DEL_SPRINT"):
             p_id, s_id = message.split('#', 1)[1].split('.')
-
+            print("DELETE SPRINT")
             self.dataBase.tables["tasks"].delete_sprint(int(s_id), int(p_id))
 
         #endregion
@@ -408,17 +402,7 @@ class Network:
         elif message.startswith("UPDATE_TASK"):
             import json
 
-            # Extract the task details from the response
-            # items = message.split('#', 1)  # Get the part after "UPDATE_TASK"
             data = message.split("$", 1)
-            # ids = data[0].split('.', 2)
-            #
-            # print("IDs before conversion:", ids)
-            # ids = [int(_) for _ in ids]  # Convert IDs to integers
-            # print("Converted IDs:", ids)
-
-            # project_id = ids[0]
-            # sprint_id = ids[1]
 
             # Fix JSON formatting issues
             item = data[1].strip()  # Remove leading/trailing spaces
@@ -466,23 +450,22 @@ class Network:
             self.send(client_socket, f"Task no.{ID} has been updated")
 
 
-
         elif message.startswith("DEL_TASK"):
             item = message.split(' ', 1)[1]
             print(item)
             self.dataBase.del_list_item(item)
             self.send(client_socket, f"{item} has deleted")
 
-        elif message.startswith("SWAP"):
-            import json
-            tasksID = message.split('#', 1)[1].split('*')
-            targetID, draggable = tasksID[0], tasksID[1]
-            # Call the function to swap task positions
-            message = self.dataBase.updataDrag(targetID, draggable)
-            # Serialize the message to JSON and encode it
-            serialized_message = json.dumps(message).encode('utf-8')
-            # Send the serialized message
-            self.send(client_socket, serialized_message)
+        # elif message.startswith("SWAP"):
+        #     import json
+        #     tasksID = message.split('#', 1)[1].split('*')
+        #     targetID, draggable = tasksID[0], tasksID[1]
+        #     # Call the function to swap task positions
+        #     message = self.dataBase.updataDrag(targetID, draggable)
+        #     # Serialize the message to JSON and encode it
+        #     serialized_message = json.dumps(message).encode('utf-8')
+        #     # Send the serialized message
+        #     self.send(client_socket, serialized_message)
 
         elif message.startswith("ADD_TASK"):
             items = message.split('#', 1)[1].split('.')
@@ -498,9 +481,6 @@ class Network:
             self.send(client_socket, "New empty task has created")
 
         # endregion
-        elif message.startswith("UPDATE_PROFILE"):
-            items = message.split('#', 1)[1].split('.', 1)
-            c_id, dir =  items
 
         elif message.startswith("END"):
             print("ENDDDDE")
@@ -508,15 +488,13 @@ class Network:
         else:
             self.send(client_socket, "Unknown command")
 
-        # except Exception as e:
-            # print(f"Message handling error: {e}")
-                # self.close()
-
     def send(self, client, message):
         try:
             if client:
                 # Encrypt the message
-                encrypted_message = self.enc.encrypt_message(message)
+                # self.enc.key = key
+                enc = self.clients[client]["enc"]
+                encrypted_message = enc.encrypt_message(message)
                 total_length = len(encrypted_message)
                 total_length_bytes = total_length.to_bytes(4, byteorder='big')
                 client.send(total_length_bytes+encrypted_message)
@@ -537,15 +515,16 @@ class Network:
             if not buffer:
                 self.disconnect_client(sock, self.sockets_list)
                 return None
-            # ✅ Check if the message is encrypted (must be at least 16 bytes)
+            # Check if the message is encrypted (must be at least 16 bytes)
+            enc = self.clients[sock]["enc"]
             if len(buffer) >= 16:
                 try:
-                    message = self.enc.decrypt_message(buffer)
+                    message = enc.decrypt_message(buffer)
                 except ValueError as e:
                     print(f"Decryption error: {e}")
                     return None  # Ignore if decryption fails
             else:
-                message = buffer.decode('utf-8')  # ✅ Handle plaintext messages
+                message = buffer.decode('utf-8')  # Handle plaintext messages
 
             return message
         except Exception as e:
@@ -555,10 +534,13 @@ class Network:
 
     def disconnect_client(self, client_socket, sockets_list):
         """Disconnect a client."""
-        print(f"Client {self.clients[client_socket]} disconnected.")
-        sockets_list.remove(client_socket)
-        del self.clients[client_socket]
-        client_socket.close()
+        try:
+            print(f"Client {self.clients[client_socket]['name'] or client_socket} disconnected.")
+            sockets_list.remove(client_socket)
+            del self.clients[client_socket]
+            client_socket.close()
+        except Exception as e:
+            print(e)
 
 
 # if __name__ == '__main__':

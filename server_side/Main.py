@@ -3,5 +3,5 @@ from Network import Network
 from installer import main
 
 if __name__ == '__main__':
-    main()
+    # main()
     Network( DatabaseParent() )
