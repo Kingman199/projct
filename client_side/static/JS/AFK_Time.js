@@ -1,70 +1,68 @@
+// AFK_Time.js
 document.addEventListener("DOMContentLoaded", () => {
-    let idleTime = 0;
-    const maxIdleMinutes = 5;
-    const warningTimeMinutes = 2;
+    /* ───── CONFIG ───── */
+    const maxIdleMinutes     = 5;   // log-out after this many idle minutes
+    const warningTimeMinutes = 2;   // show warning modal after this many idle minutes
+    const PING_INTERVAL_MS   = 60_000; // min gap between /reset_timer pings  (1 min)
 
-    const modal = document.getElementById("idleTimeoutModal");
-    const stayLoggedInBtn = document.getElementById("stayLoggedInBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-
-    if (!modal || !stayLoggedInBtn || !logoutBtn) {
-        console.error("Idle modal elements not found.");
+    /* ───── ELEMENTS ───── */
+    const modal        = document.getElementById("idleTimeoutModal");
+    const stayLoggedIn = document.getElementById("stayLoggedInBtn");
+    const logoutBtn    = document.getElementById("logoutBtn");
+    if (!modal || !stayLoggedIn || !logoutBtn) {
+        console.error("Idle-timeout DOM elements missing");
         return;
     }
 
-    const maxIdle = maxIdleMinutes * 60 * 1000; // ms
-    const warningTime = warningTimeMinutes * 60 * 1000; // ms
-    let lastActivity = Date.now();
+    /* ───── TIMERS ───── */
+    let warnTimerId   = null;
+    let logoutTimerId = null;
+    const warnDelay   = warningTimeMinutes * 60_000;
+    const logoutDelay = maxIdleMinutes     * 60_000;
 
-    function showModal() {
-        modal.classList.remove("hidden");
-        modal.classList.add("visible");
-    }
+    const clearTimers = () => {
+        clearTimeout(warnTimerId);
+        clearTimeout(logoutTimerId);
+    };
 
-    function hideModal() {
-        modal.classList.remove("visible");
-        modal.classList.add("hidden");
-    }
+    const startTimers = () => {
+        warnTimerId   = setTimeout(showWarning, warnDelay);
+        logoutTimerId = setTimeout(forceLogout, logoutDelay);
+    };
 
-    function resetIdleTimer() {
-        lastActivity = Date.now();
-        hideModal();
-    }
-
-    function pingServer() {
-        fetch("/reset_timer", { method: "POST" }).catch(err =>
-            console.warn("Session ping failed:", err)
-        );
-    }
-
-    function checkIdle() {
+    /* ───── KEEP-ALIVE ───── */
+    let lastPing = 0;
+    const maybePingServer = () => {
         const now = Date.now();
-        const idleDuration = now - lastActivity;
-
-        if (idleDuration >= maxIdle) {
-            window.location.href = "/logout";
-        } else if (idleDuration >= warningTime) {
-            showModal();
-        } else {
-            hideModal();
+        if (now - lastPing > PING_INTERVAL_MS) {
+            fetch("/reset_timer", { method: "POST" }).catch(err =>
+                console.warn("Session ping failed:", err)
+            );
+            lastPing = now;
         }
-    }
+    };
 
-    setInterval(checkIdle, 10000); // Check every 10 seconds
+    /* ───── HANDLERS ───── */
+    const showWarning = () => modal.classList.replace("hidden", "visible");
+    const hideWarning = () => modal.classList.replace("visible", "hidden");
+    const forceLogout = () => window.location.href = "/logout";
 
-    ["mousemove", "keydown", "click", "scroll"].forEach(evt =>
-        document.addEventListener(evt, () => {
-            resetIdleTimer();
-            pingServer();
-        })
+    const resetIdle = () => {
+        hideWarning();
+        maybePingServer();   // throttle keep-alive
+        clearTimers();
+        startTimers();
+    };
+
+    /* ───── ACTIVITY EVENTS ───── */
+    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(evt =>
+        document.addEventListener(evt, resetIdle, { passive: true })
     );
 
-    stayLoggedInBtn.addEventListener("click", () => {
-        resetIdleTimer();
-        pingServer();
-    });
+    /* ───── BUTTONS ───── */
+    stayLoggedIn.addEventListener("click", resetIdle);
+    logoutBtn.addEventListener("click", forceLogout);
 
-    logoutBtn.addEventListener("click", () => {
-        window.location.href = "/logout";
-    });
+    /* ───── ARM EVERYTHING ───── */
+    startTimers();
 });
