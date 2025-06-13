@@ -1,6 +1,6 @@
 import threading, mimetypes, uuid, json, base64, re
 from Client import *
-from flask import Flask, jsonify, request, render_template, session, redirect, url_for, send_file
+from flask import Flask, jsonify, request, render_template, session, redirect, url_for, send_file, has_request_context
 from ConnectionWithDatabase import ConnectionWithDatabase
 from flask_session import Session
 from datetime import datetime
@@ -150,6 +150,8 @@ def login():
                 clients[temp_session_id]["client"] = new_client
                 session["time_since_login"] = new_client.time_since_login
                 clients_list.append(username)
+
+
                 return redirect(url_for('projects_view', session_id=temp_session_id))
             else:
                 connection.close()
@@ -213,6 +215,9 @@ def projects_view():
     session["shared_projects"] = share_projects
     session["notifications"] = get_notifications()
 
+
+    friend_list  = friends()
+    print("FRIENDS", friend_list)
     return render_template(
         "projects.html",
         projects=session["projects"],
@@ -320,10 +325,9 @@ def delete_project():
     return jsonify({'message': 'Project deleted'}), 200
 
 
+
 @app.route("/project/<string:project_name>")
 def project_dashboard(project_name):
-    global sprints_data
-
     # Pull session_id from URL first
     session_id = request.args.get("session_id") or session.get("session_id")
     if not session_id:
@@ -360,11 +364,12 @@ def project_dashboard(project_name):
             print(f"Error fetching tasks for project {project_id}: {e}")
             return render_template('404.html', error="Error")
 
+
         return render_template(
             "HomeTasks_.html",
             project_name= project_name,
             project_id= project_id,
-            sprints= sprints_data,
+            sprints= sprints_data[::-1],
             projects=session["projects"],
             shared_projects=session["shared_projects"],
             session_id = session_id
@@ -378,87 +383,106 @@ def project_dashboard(project_name):
 
 # region --------------- SPRINTS ---------------
 
+import json
+import ast
+
+def clean_nonbreaking_spaces(obj):
+    if isinstance(obj, dict):
+        return {k: clean_nonbreaking_spaces(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nonbreaking_spaces(i) for i in obj]
+    elif isinstance(obj, str):
+        return obj.replace('\xa0', ' ').strip()
+    return obj
+
 def get_sprints(project_id):
-    clients[session["session_id"]]["connection"].send(f"GIVE {session['client_id']}.{project_id}#sprints")
+    clients[session["session_id"]]["connection"].send(
+        f"GIVE {session['client_id']}.{project_id}#sprints"
+    )
     response = clients[session["session_id"]]["connection"].receive()
 
     print(f"Raw task data received: {response}")
-    # Clean up bytes-like prefix if present
+
+    # Remove byte-string wrapper if present
     if response.startswith("b'") or response.startswith('b"'):
-        response = response[2:-1]  # Remove the b'...' or b"..." wrapper
+        response = response[2:-1]
 
-    # Replace single quotes with double quotes for valid JSON
-    response = response.replace("'", '"')
-
-    # Replace Python-style `None` with JSON-style `null`
-    response = response.replace("None", "null")
-
-    # Check for empty or invalid data
-    if not response.strip():
-        print("Failed to receive sprints.")
-        return "Error loading tasks", 500
+    # Fallback: Try to interpret Python literal
     try:
-        # Attempt to parse the sanitized task data as JSON
-        sprints = json.loads(response)
-    except json.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        print(f"Sanitized task data: {response}")
+        data = ast.literal_eval(response)
+    except Exception as e:
+        print(f"Failed to parse Python literal: {e}")
         return "Error parsing tasks", 500
-    # sprints need to be a dictionary inside a list -> [ ]
-    return sprints
+
+    # Convert to JSON-safe string
+    try:
+        cleaned_data = clean_nonbreaking_spaces(data)
+        return cleaned_data
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        return "Error processing tasks", 500
+
 
 
 # Update Sprint Color Route
 import copy
 
 
-# TODO: Add the sockeio.emit for update sprint
 @app.route('/update_sprint', methods=['POST'])
 def update_sprint():
-    global sprints_data
     try:
-        data = request.get_json()  # Use get_json for safety
-        sprint_id = data.get('SprintID')
+        data = request.get_json()
+        sprint_id = data.get("SprintID")
+        project_id = data.get("project_id")
+        sprint_name = data.get("SprintName")
+        sprint_color = data.get("SprintColor")
 
         if sprint_id is None:
             return jsonify({"success": False, "error": "SprintID is required"}), 400
 
-        sprint = next((t for t in sprints_data if int(t.get("SprintID", -1)) == int(sprint_id)), None)
+        sprints = session.get("sprints", [])
+        sprint = next((t for t in sprints if int(t.get("SprintID", -1)) == int(sprint_id)), None)
         if sprint is None:
             return jsonify({"success": False, "error": "Sprint not found"}), 404
 
-        # Use deep copy to isolate the task list
-        tasks = copy.deepcopy(sprint["Tasks"])
+        tasks = copy.deepcopy(sprint.get("Tasks", []))
         sprint["Tasks"] = None
         updated_fields = {}
 
-        if 'SprintColor' in data:
-            sprint["SprintColor"] = data["SprintColor"]
-            updated_fields["SprintColor"] = data["SprintColor"]
-            print(f"Updated Sprint {sprint_id} color to {data['SprintColor']}")
+        if sprint_color is not None:
+            sprint["SprintColor"] = sprint_color
+            updated_fields["SprintColor"] = sprint_color
 
-        if 'SprintName' in data:
-            if len(data["SprintName"]) > 2:
-                sprint["SprintName"] = data["SprintName"]
-                updated_fields["SprintName"] = data["SprintName"]
-                print(f"Updated Sprint {sprint_id} name to {data['SprintName']}")
+        if sprint_name and sprint_name != sprint["SprintName"]:
+            if len(sprint_name) > 2:
+                sprint["SprintName"] = sprint_name.replace(u'\xa0', ' ').strip()
+                updated_fields["SprintName"] = sprint_name
             else:
-                sprint["SprintName"] = "too short"
+                return jsonify({"success": False, "error": "Sprint name too short"}), 400
 
         if updated_fields:
-            # Ensure connection object exists and send update
-                    clients[session["session_id"]]["connection"].send(f"UPDATE_SPRINT#{sprint_id}${json.dumps(sprint)}")
+            # If you still want to send custom connection updates (optional)
+            if "session_id" in session and session["session_id"] in clients:
+                clients[session["session_id"]]["connection"].send(
+                    f"UPDATE_SPRINT#{sprint_id}${json.dumps(sprint)}"
+                )
 
-        # Restore the deep copied tasks list
+            room_name = f"project_{project_id}"
+            socketio.emit("sprint_updated", {
+                "sprint_id": sprint_id,
+                "updated_by": session.get("username"),
+                "updated_fields": updated_fields,
+                "project_id": project_id
+            }, room=room_name)
+
         sprint["Tasks"] = tasks
         session["tasks"] = tasks
-        # TODO: Add the sockeio.emit for update sprint
-        return jsonify([sprint])  # Return updated sprint in expected format
+
+        return jsonify({"status": "success"})
 
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
+        print("Exception:", str(e))
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # TODO: Add the sockeio.emit for adding sprint
 @app.route('/add_sprint', methods=['POST'])
@@ -490,13 +514,21 @@ def add_sprint():
         # connection.send(f"ADD_SPRINT#{session["project_id"]}.{task_id}${taskName}")
         clients[session["session_id"]]["connection"].send(f"ADD_SPRINT#{session['client_id']}.{projectId}${json.dumps(new_sprint)}")
 
+        username = session.get("username", "unknown")
+        socketio.emit("sprint_added",
+                      {"project_id": projectId,
+                       "sprint": new_sprint,
+                       "added_by": username},
+                      room=f"project_{projectId}",
+                      namespace="/")
+
+
         session["sprints"].append(new_sprint)
         return jsonify({"success": True, "sprint": new_sprint})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
 
-# TODO: Add the sockeio.emit for deleting sprint
 @app.route('/delete_sprint/<sprint_id>', methods=['DELETE'])
 def delete_sprint(sprint_id):
     print(f"Received request to delete sprint {sprint_id}")
@@ -504,7 +536,6 @@ def delete_sprint(sprint_id):
         original_sprints = session.get("sprints", [])
         print("Original sprints:", original_sprints)
 
-        # Convert all SprintIDs to strings for consistent comparison
         new_sprints = [s for s in original_sprints if str(s["SprintID"]) != str(sprint_id)]
 
         if len(original_sprints) == len(new_sprints):
@@ -514,17 +545,26 @@ def delete_sprint(sprint_id):
         session["sprints"] = new_sprints
         print("Sprint deleted")
 
-
         project_id = session.get("project_id")
-        print(f"project_id: {project_id}")
         session_id = session.get("session_id")
+        username   = session.get("username") or "unknown"
         connection = clients[session_id]["connection"]
+
         if session_id in clients:
             connection.send(f"DEL_SPRINT#{project_id}.{sprint_id}")
+
+        # ✅ Socket.IO broadcast to all clients in the project room
+        socketio.emit("sprint_deleted",
+                      {"project_id": project_id,
+                       "sprint_id": sprint_id,
+                       "deleted_by": username},
+                      room=f"project_{project_id}",
+                      namespace="/")
 
         return jsonify({"success": True, "deletedSprintId": sprint_id}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 # endregion
@@ -577,6 +617,7 @@ def delete_task():
     project_id = data.get('project_id')  # Get project_id from the frontend
     session['project_id'] = project_id
     session['task_id'] = task_id
+    sprint_id = 0
     username = session["username"]
     print(task_id)
     sprint_name = ""
@@ -585,6 +626,7 @@ def delete_task():
         for task in sprint.get("Tasks"):
             if task["TaskID"] == int(task_id):
                 sprint_name = sprint["SprintName"]
+                sprint_id = sprint["SprintID"]
                 sprint["Tasks"].remove(task)
                 break
 
@@ -594,10 +636,10 @@ def delete_task():
     if "successfully" in response:
         # Emit deletion to all clients
         socketio.emit("delete_task", {
-            "project_id": project_id,
             "task_id": task_id,
             "deleted_by": username,
-            "sprint_name": sprint_name
+            "sprint_name": sprint_name,
+            "sprint_id" : sprint_id
         }, room=f"project_{project_id}")
         return jsonify({'status': 'success', 'message': 'Task deleted successfully'}), 200
     else:
@@ -645,7 +687,8 @@ def add_task():
     new_task["StatusColor"] = STATUS_COLORS.get(new_task.get("Status", "In Progress"), "#d0ebff")
     new_task["PriorityColor"] = PRIORITY_COLORS.get(new_task.get("Priority", "Medium"), "#9ca3af")
     new_task["Progress"] = 0  # Default progress
-
+    new_task["Owners"] = None
+    new_task["Tags"] = "None"
     # Append the new task to session["tasks"]
     session["tasks"].append(new_task)
     for sprint in session.get("sprints", []):
@@ -670,13 +713,14 @@ def add_task():
         return jsonify({"status": "error", "message": "Failed to add task"}), 500
 
     socketio.emit("task_added", {
-        "project_id": project_id,
         "new_task": new_task,
         "added_by": username,
         "sprint_id": sprint_id,
-        "sprint_name": sprint_name
+        "sprint_name": sprint_name,
+        "project_id" : project_id
     }, room=f"project_{project_id}")
-
+    # print(new_task)
+    new_task["project_id"] = project_id
     return jsonify({"status": "success", "newTask": new_task})
 
 @app.route("/update_task", methods=["POST"])
@@ -690,6 +734,8 @@ def update_task():
 
         update_data = request.json
         task_id = update_data.get("ID")
+        status = update_data.get("Status")
+        priority = update_data.get("Priority")
         sprint_id = update_data.get("SprintID")
         task_name = update_data.get("TaskName", "").strip()
 
@@ -727,25 +773,26 @@ def update_task():
                 task["TaskName"] = task_name
 
         # Validate and update status
-        # if status and task["Status"] != status:
-        #     change_log.append(f"Status changed from '{task['Status']}' to '{status}'")
-        #     task["Status"] = status
-        #     if "StatusColor" in update_data:  # Ensure frontend provides correct status color
-        #         task["StatusColor"] = update_data["StatusColor"]
+        if status and task["Status"] != status:
+            change_log.append(f"Status changed from '{task['Status']}' to '{status}'")
+            task["Status"] = status
+            if "StatusColor" in update_data:  # Ensure frontend provides correct status color
+                task["StatusColor"] = update_data["StatusColor"]
         # Validate and update priority
-        # if priority and task["Priority"] != priority:
-        #     change_log.append(f"Priority changed from '{task['Priority']}' to '{priority}'")
-        #     task["Priority"] = priority
-        #     if "PriorityColor" in update_data:  # Ensure frontend provides correct priority color
-        #         task["PriorityColor"] = update_data["PriorityColor"]
+        if priority and task["Priority"] != priority:
+            change_log.append(f"Priority changed from '{task['Priority']}' to '{priority}'")
+            task["Priority"] = priority
+            if "PriorityColor" in update_data:  # Ensure frontend provides correct priority color
+                task["PriorityColor"] = update_data["PriorityColor"]
 
+        due_date = update_data.get("DueDate")
         # Validate and update due date
-        # if due_date and task.get("DueDate") != due_date:
-        #     change_log.append(f"Due date changed from '{task.get('DueDate', 'None')}' to '{due_date}'")
-        #     task["DueDate"] = due_date
-        new_due_date_str = update_data.get("DueDate")
-        print(type(new_due_date_str))
-        if new_due_date_str:
+        if due_date and task.get("DueDate") != due_date:
+            change_log.append(f"Due date changed from '{task.get('DueDate', 'None')}' to '{due_date}'")
+            task["DueDate"] = due_date
+
+        print(type(due_date))
+        if due_date:
             task = updatePlus(task, update_data)
         # endregion
 
@@ -758,7 +805,7 @@ def update_task():
             "sprint_name": sprint_name
         }, room=f"project_{project_id}")
 
-        print(f"\n\nUpdated Task: {task}\n\n")
+        print(f"Updated Task: {task}")
 
         # Update the session with the modified task
         for sprint in session.get("sprints", []):
@@ -775,7 +822,7 @@ def update_task():
         for sprint in session.get("sprints", []):
             print(f"Tasks in Sprint {sprint['SprintID']}: {sprint.get('Tasks', [])}")
 
-        # TODO: if the date is closed to the DueDate, the system would add a notification to the user about it.
+        # TODO: if the date is close to the DueDate, the system would add a notification to the user about it.
 
         # Notify the client through WebSocket
         if session.get("session_id") in clients:
@@ -1066,7 +1113,6 @@ PRIORITY_COLORS = {
     "Missing": "#9ca3af",
 }
 
-
 # endregion
 
 
@@ -1086,7 +1132,7 @@ def get_notifications():
             print("User not found in database.")
             return []  # Return empty list if user is not found
 
-        session["email"] = response.strip
+        session["email"] = response.strip()
         print(f"Email for client {session.get('client_id')} retrieved: {response}")
 
     # Retrieve pending requests (friends + workers)
@@ -1108,31 +1154,32 @@ def get_notifications():
 
         # Handle friend requests
         if "friends" in data_obj and isinstance(data_obj["friends"], list):
-            for friend_request in data_obj["friends"]:
-                if isinstance(friend_request, dict):
-                    sender = friend_request.get('sender_username', 'Unknown')
-                    sender_id = friend_request.get('sender_id', 'Unknown')
-                    notif_type = friend_request.get('type', 'unknown')
+            # Flatten in case of nested list
+            flat_friends = [item for sublist in data_obj["friends"] if isinstance(sublist, list) for item in sublist]
+            for friend_request in flat_friends:
+                sender = friend_request.get('sender_username', 'Unknown')
+                sender_id = friend_request.get('sender_id', 'Unknown')
+                notif_type = friend_request.get('type', 'unknown')
 
-                    message = f"You have a new {notif_type} from {sender}"
-                    print("Formatted notification message:", message)
+                message = f"You have a new {notif_type} from {sender}"
+                print("Formatted notification message:", message)
 
-                    friend_request["message"] = message
-                    notifications.append(friend_request)
+                friend_request["message"] = message
+                notifications.append(friend_request)
 
         # Handle worker requests
         if "workers" in data_obj and isinstance(data_obj["workers"], list):
-            for worker_request in data_obj["workers"]:
-                if isinstance(worker_request, dict):
-                    sender = worker_request.get('sender_username', 'Unknown')
-                    sender_id = worker_request.get('sender_id', 'Unknown')
-                    notif_type = worker_request.get('type', 'unknown')
+            flat_workers = [item for sublist in data_obj["workers"] if isinstance(sublist, list) for item in sublist]
+            for worker_request in flat_workers:
+                sender = worker_request.get('sender_username', 'Unknown')
+                sender_id = worker_request.get('sender_id', 'Unknown')
+                notif_type = worker_request.get('type', 'unknown')
 
-                    message = f"You have a new {notif_type} from {sender}"
-                    print("Formatted notification message:", message)
+                message = f"You have a new {notif_type} from {sender}"
+                print("Formatted notification message:", message)
 
-                    worker_request["message"] = message
-                    notifications.append(worker_request)
+                worker_request["message"] = message
+                notifications.append(worker_request)
 
     else:
         print("Unexpected response format.")
@@ -1142,20 +1189,41 @@ def get_notifications():
     return notifications
 
 
+def friends():
+    try:
+        session_id = request.args.get("session_id") or session.get("session_id")
+        client_id = clients[session_id]["client"].client_id
+        connection = clients.get(session_id)["connection"]
 
+        payload = json.dumps({"client_id": client_id, "active_users": list(connected_users.keys())})
+        print("PAYLOAD", payload)
+        if list(connected_users.keys()):
+            connection.send(f"GET_FRIENDS#{payload}")
+            response = connection.receive()
+            friends_data = json.loads(response)
+
+            if not isinstance(friends_data, dict) or "friends" not in friends_data:
+                return []
+
+            friends_list = friends_data["friends"]
+            if not isinstance(friends_list, list):
+                return []
+
+            for friend in friends_list:
+                friend["online"] = str(friend["id"]) in connected_users
+            return friends_list
+    except Exception:
+        return []
+        # if not session["friends"]:
+        #     session["friends"] = friends_list
+        #     clients[session_id]["client"].friends = friends_list
 #region FRIENDS
-# Store active users (Online users: {client_id: socket_session_id})
-active_users = {}
-
 @app.route("/get_friends", methods=["GET"])
 def get_friends():
     # Pull session_id from URL first
     session_id = request.args.get("session_id") or session.get("session_id")
 
-    if not session_id:
-        return render_template("404.html",
-                               error="Hold on, buddy. Something is off...\nPlease wait for the updates"), 404
-    if "client_id" not in session:
+    if not session_id or "client_id" not in session:
         return render_template("404.html",
                                error="Hold on, buddy. Something is off...\nPlease wait for the updates"), 404
     try:
@@ -1168,7 +1236,7 @@ def get_friends():
         return render_template("404.html", error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
 
     payload = json.dumps({"client_id": client_id, "active_users": list(connected_users.keys())})
-    if len(list(connected_users.keys())) > 1:
+    if len(list(connected_users.keys())) > 0:
         connection.send(f"GET_FRIENDS#{payload}")
         response = connection.receive()
         if "ENDED" in response:
@@ -1195,7 +1263,6 @@ def get_friends():
 
         for friend in friends_list:
             friend["online"] = str(friend["id"]) in connected_users
-
         session["friends"] = friends_list
         clients[session_id]["client"].friends = friends_list
         return jsonify({"friends": [friend for friend in friends_list if friend["id"] != client_id]})
@@ -1270,14 +1337,11 @@ def send_friend_request():
         print(f"⚠️ Error in send_friend_request: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-
 @app.route("/accept_friend_request", methods=["POST"])
 def accept_friend_request():
-    # Pull session_id from URL first
     session_id = request.args.get("session_id") or session.get("session_id")
 
     if "client_id" not in session:
-        print("Unauthorized request - No session found")
         return jsonify({"error": "User not logged in"}), 401
 
     try:
@@ -1289,35 +1353,92 @@ def accept_friend_request():
         if not sender_id or not status:
             return jsonify({"error": "Invalid request"}), 400
 
-        print(f"Processing request from {sender_id} by {receiver_id}")
-
-        connection = clients.get(session_id)
+        connection = clients[session_id]["connection"]
         if not connection:
             return jsonify({"error": "Database connection not found"}), 500
+
         password = data.get("password")
 
         if status == "accepted":
-            if password != session.get("password"):  # Verify session password
+            if password != session.get("password"):  # Validate password
                 return jsonify({"success": False, "error": "Incorrect password"}), 403
+
             connection.send(f"CONFIRM_FRIENDSHIP#{sender_id}.{receiver_id}")
-            confirm_response = connection.receive()
+            confirm_response = connection.receive().strip()
+
             if "ENDED" in confirm_response:
                 return render_template("404.html",
                                        error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
-            if confirm_response.strip() == "Friendship confirmed":
+
+            if confirm_response == "Friendship confirmed":
                 return jsonify({"success": "Friend request accepted!"})
             else:
                 return jsonify({"error": "Friendship confirmation failed"}), 500
 
         elif status == "denied":
-            return jsonify({"success": "Friend request denied!"})
+            connection.send(f"DECLINE_FRIEND_REQUEST#{sender_id}.{receiver_id}")
+            decline_response = connection.receive().strip()
+
+            if "ENDED" in decline_response:
+                return render_template("404.html",
+                                       error="Session ended. Try again later."), 404
+
+            if decline_response == "Friendship declined":
+                return jsonify({"success": "Friend request denied!"})
+            else:
+                return jsonify({"error": "Could not decline request"}), 500
 
         return jsonify({"error": "Invalid status"}), 400
 
     except Exception as e:
         print(f"Error in accept_friend_request: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-
+# @app.route("/accept_friend_request", methods=["POST"])
+# def accept_friend_request():
+#     # Pull session_id from URL first
+#     session_id = request.args.get("session_id") or session.get("session_id")
+#
+#     if "client_id" not in session:
+#         print("Unauthorized request - No session found")
+#         return jsonify({"error": "User not logged in"}), 401
+#
+#     try:
+#         data = request.get_json()
+#         sender_id = data.get("sender_id")
+#         status = data.get("status")
+#         receiver_id = clients[session_id]["client"].client_id
+#
+#         if not sender_id or not status:
+#             return jsonify({"error": "Invalid request"}), 400
+#
+#         print(f"Processing request from {sender_id} by {receiver_id}")
+#
+#         connection = clients[session_id]["connection"]
+#         if not connection:
+#             return jsonify({"error": "Database connection not found"}), 500
+#         password = data.get("password")
+#
+#         if status == "accepted":
+#             if password != session.get("password"):  # Verify session password
+#                 return jsonify({"success": False, "error": "Incorrect password"}), 403
+#             connection.send(f"CONFIRM_FRIENDSHIP#{sender_id}.{receiver_id}")
+#             confirm_response = connection.receive()
+#             if "ENDED" in confirm_response:
+#                 return render_template("404.html",
+#                                        error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
+#             if confirm_response.strip() == "Friendship confirmed":
+#                 return jsonify({"success": "Friend request accepted!"})
+#             else:
+#                 return jsonify({"error": "Friendship confirmation failed"}), 500
+#
+#         elif status == "denied":
+#             return jsonify({"success": "Friend request denied!"})
+#
+#         return jsonify({"error": "Invalid status"}), 400
+#
+#     except Exception as e:
+#         print(f"Error in accept_friend_request: {str(e)}")
+#         return jsonify({"error": "Internal Server Error"}), 500
 
 @socketio.on("new_friend_request")
 def notify_receiver(data):
@@ -1348,41 +1469,46 @@ def notify_receiver(data):
     except Exception as e:
         print(f"⚠️ Error in notify_receiver: {str(e)}")
 
-
 @app.route("/pending_friend_requests", methods=["GET"])
 def pending_friend_requests():
-    # Pull session_id from URL first
     session_id = request.args.get("session_id") or session.get("session_id")
-
     receiver_email = session.get("email")
 
-    connection = clients.get(session_id)["connection"]
-    if not connection:
-        return jsonify({"error": "Database connection not found"}), 500
-
-
+    if not session_id or session_id not in clients:
+        return jsonify({"error": "Session invalid"}), 401
     if not receiver_email:
         return jsonify({"error": "User not logged in"}), 401
 
-    # Send request to Network.py with proper JSON formatting
-    import json
-    payload = json.dumps({"email": receiver_email})
-    connection.send(f"GET_PENDING_REQUESTS#{payload}")
+    connection = clients[session_id]["connection"]
+    if not connection:
+        return jsonify({"error": "Database connection not found"}), 500
 
-    response = connection.receive()
+    connection.send(f"GET_PENDING_REQUESTS#{json.dumps({'email': receiver_email})}")
+    response = connection.receive().strip()
+    print("PENDING:", response)
+
     if "ENDED" in response:
-        return render_template("404.html",
-                               error="Hold on, buddy. Something is off...\nPlease 'wait' for the updates"), 404
-    if not response:  # Handle empty response safely
+        return jsonify({"error": "Session ended"}), 403
+    if not response:
         return jsonify({"pending_requests": []})
-    response = response.strip()
+
     try:
-        pending_requests = json.loads(response)  # Expecting a JSON response
+        data = json.loads(response)
+        pending_requests = []
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+            data_obj = data[0]
+
+            # Flatten and extract friend requests
+            if "friends" in data_obj:
+                flat_friends = [
+                    item for sublist in data_obj["friends"]
+                    if isinstance(sublist, list) for item in sublist
+                ]
+                pending_requests.extend(flat_friends)
+
         return jsonify({"pending_requests": pending_requests})
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid response format"}), 500
-
-
 
 # region socketio
 # Global dictionary to store connected users
@@ -1395,7 +1521,6 @@ user_rooms = {}
 def get_connected_users():
     """Returns the list of currently connected users."""
     return jsonify({"connected_users": list(connected_users.keys())})
-
 
 @socketio.on("connect")
 def handle_connect():
@@ -1411,7 +1536,6 @@ def handle_connect():
 
         join_room(f"user_{client_id}")
         socketio.emit("update_online_status", {"id": client_id, "online": True}, to="all")
-
 
 @socketio.on("disconnect")
 def handle_disconnect():
@@ -1429,6 +1553,9 @@ def handle_disconnect():
         socketio.emit("update_online_status", {"id": client_id, "online": False}, to=None)
 
         print(f"❌ User {client_id} disconnected.")
+#
+# rooms_lock   = threading.Lock()          # protects the two dicts below
+# project_rooms = {}                       # {project_id: {client_id, …}}
 
 project_rooms = []
 join_project = []
@@ -1454,8 +1581,6 @@ def on_join_project(data):
         emit("joined_room", {"room": room})  # <-- emit ONLY to the sender!
     except Exception:
             return render_template("404.html", error="You made a mistake, buddy"), 404
-
-
 @socketio.on("leave_project")
 def on_leave_project(data):
     """Handles users leaving a project room."""
@@ -1473,41 +1598,64 @@ def on_leave_project(data):
         print(f"Client {request.sid} ({client_id}) left {room}")
         emit("left_room", {"room": room}, room=room)
 
-
-
 @socketio.on("team_update")
 def handle_team_update(data):
     sender = session.get("username", "Unknown")
-    project_id = data.get("project_id")  # get it from the incoming message
+    project_id = data.get("project_id")
 
     if not project_id:
         print("❗ No project_id provided with message.")
         return
 
+    message_text = data.get("message", "").strip()
+    if not message_text:
+        return
+
     message_data = {
         "sender": sender,
-        "message": data.get("message", "")
+        "message": message_text
     }
 
+    # Save the message to file
+    save_message_to_file(project_id, sender, message_text)
+
+    # Emit to the project room
     socketio.emit("team_update", message_data, room=f"project_{project_id}")
     print(f"📨 Message broadcast to project_{project_id} from {sender}")
-
 @socketio.on('chat_message')
 def handle_chat_message(data):
     message = data['message']
     emit('chat_message', {'message': message}, broadcast=True)
+    print("Message", message)
 
+def save_message_to_file(project_id, sender, message):
+    user_dir = f"static/Chat/{project_id}"
+    os.makedirs(user_dir, exist_ok=True)
+    filepath = os.path.join(user_dir, "chat.txt")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    with open(filepath, 'a', encoding='utf-8') as f:
+        f.write(f"[{timestamp}] {sender}: {message}\n")
+@app.route("/chat_history/<project_id>")
+def chat_history(project_id):
+    filepath = f"static/Chat/{project_id}/chat.txt"
+    if not os.path.exists(filepath):
+        return jsonify(messages=[])  # no history yet
+
+    with open(filepath, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    # Return lines as a list of strings
+    return jsonify(messages=lines)
 # endregion
 
 # endregion
-
 
 # region    --- WORKERS ---
 @app.route('/team_dashboard')
 @role_required('Manager', 'Worker')
 def team_dashboard():
     return render_template('team_dashboard.html')
-
 
 def fetch_workers_for_manager(manager_id):
     connection = clients.get(session["session_id"])["connection"]
@@ -1529,6 +1677,7 @@ def fetch_workers_for_manager(manager_id):
     except json.JSONDecodeError:
         return []
 
+@role_required('Manager')
 @app.route('/my_workers')
 def my_workers():
     if "client_id" not in session:
@@ -1550,7 +1699,6 @@ def my_workers():
         return render_template('my_workers.html', workers=workers)
     except json.JSONDecodeError:
         return "Error loading workers", 500
-
 
 @app.route('/register_worker', methods=['POST'])
 def register_worker():
@@ -1624,7 +1772,6 @@ def add_worker():
 
     return jsonify({'message': 'Worker added successfully'}), 200
 
-
 @app.route('/accept_work_request', methods=['POST'])
 def accept_work_request():
     data = request.get_json()
@@ -1638,15 +1785,14 @@ def decline_work_request():
     sender_id = data.get('sender_id')
     # TODO: Process declining the work request
     return jsonify({"success": True})
-
 # endregion
 
+#region -- OTHERS --
 @app.route('/reset_timer', methods=['POST'])
 def reset_timer():
     if "username" in session:
         session["time_since_login"] = time.time()
     return '', 204
-
 @app.route('/register', methods=['POST'])
 def register():
     try:
@@ -1679,7 +1825,6 @@ def register():
         print("Exception in /register:", e)
         traceback.print_exc()
         return render_template('404.html', error="Internal server error during registration.")
-
 @app.route('/logout')
 def logout():
     session_id = session.get("session_id")
@@ -1725,14 +1870,26 @@ def listToDo():
         return render_template('listToDo.html')
     except Exception:
             return render_template("404.html", error="You made a mistake, buddy"), 404
-
 @app.route('/404')
 def page_404():
     return render_template('404.html')
 
+@role_required('Guest')
 @app.route('/become_manager')
 def become_manager():
-    return render_template('404.html', Error="Error")
+    try:
+        session_id = session['session_id']
+        user_dir = f"static/Become_a_manager"
+        with open(user_dir+f"/become_a_manager.txt", 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        # if  # no lines or the username didn't appear in the file:
+        #     - Make sure the isChecked value is False
+
+        return render_template('become_manager.html', projects=session['projects'], isChecked= '....')
+    except Exception as e:
+        print(e)
+        return render_template("404.html", error=e), 404
+
 
 @app.route('/settings')
 def settings():
@@ -1774,7 +1931,7 @@ def upload_avatar():
         return redirect('/profile')
     except Exception:
         return render_template("404.html", error="You made a mistake, buddy"), 404
-
+# endregion
 
 def start():
     socketio_thread = threading.Thread(target=run_socketio)
